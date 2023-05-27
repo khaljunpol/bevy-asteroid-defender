@@ -1,2 +1,2 @@
-# defender-game-rust
+# bevy-asteroid-defender
 Learning Rust and Bevy
