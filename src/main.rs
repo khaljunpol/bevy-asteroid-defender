@@ -1,41 +1,49 @@
 use bevy::prelude::*;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::window::PrimaryWindow;
+use player::{PlayerComponent, PlayerPlugin};
+use common_components::{Position, RotationAngle, Velocity};
 
 mod player;
-mod geom;
+mod common_components;
+mod resources;
 
 fn main() {
  App::new()
  .add_plugins(DefaultPlugins)
- .add_startup_system(spawn_player)
- .add_startup_system(spawn_camera)
- .add_system(player::player_movement)
- .add_system(player::confine_player_movement)
+ .add_plugin(WorldInspectorPlugin::new())
+ .add_plugin(PlayerPlugin)
+ .add_startup_system(startup_system)
  .run();
 }
 
-pub fn spawn_player(
+fn startup_system(
     mut commands: Commands,
-    window_query: Query<&Window, With<PrimaryWindow>>,
     asset_server: Res<AssetServer>,
-){
-    let window: &Window = window_query.get_single().unwrap();
-    let pos: Vec2 = Vec2::new(window.width() / 2.0, window.height() / 2.0);
-
-    commands.spawn((
-        player::spawn_player(asset_server, pos),
-        player::Player::new(pos)
-    ));
-}
-
-pub fn spawn_camera(
-    mut commands: Commands,
-    window_query: Query<&Window, With<PrimaryWindow>>,
-) {
+    window_query: Query<&mut Window, With<PrimaryWindow>>,
+)
+{
     let window: &Window = window_query.get_single().unwrap();
 
-    commands.spawn(Camera2dBundle{
-        transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
-        ..default()
-    });
+    // commands.spawn(Camera2dBundle{
+    //     transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
+    //     ..default()
+    // });
+    commands.spawn(Camera2dBundle::default());
+
+    commands
+        .spawn(SpriteBundle {
+            texture: asset_server.load(resources::PLAYER_SPRITE),
+            transform: Transform {
+                translation: Vec3::new(window.width() / 2.0, window.height() / 2.0, 10.),
+                // scale: Vec3::new(0.5, 0.5, 1.),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Name::new("Player"))
+        .insert(PlayerComponent)
+        .insert(Velocity(Vec2::splat(0.0)))
+        .insert(Position(Vec2::splat(0.0)))
+        .insert(RotationAngle(0.0));
 }

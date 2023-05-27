@@ -1,18 +1,20 @@
 use bevy::prelude::*;
 
-pub const ships: [String; 12] = [
-    "playerShip1_blue.png".to_string(),
-    "playerShip1_green.png".to_string(),
-    "playerShip1_orange.png".to_string(),
-    "playerShip1_red.png".to_string(),
-    "playerShip2_blue.png".to_string(),
-    "playerShip2_green.png".to_string(),
-    "playerShip2_orange.png".to_string(),
-    "playerShip2_red.png".to_string(),
-    "playerShip3_blue.png".to_string(),
-    "playerShip3_green.png".to_string(),
-    "playerShip3_orange.png".to_string(),
-    "playerShip3_red.png".to_string()
+pub const PLAYER_SPRITE: &str = "assets/playerShip2_blue.png";
+
+pub const SHIPS_SPRITE: [&str; 12] = [
+    "playerShip1_blue.png",
+    "playerShip1_green.png",
+    "playerShip1_orange.png",
+    "playerShip1_red.png",
+    "playerShip2_blue.png",
+    "playerShip2_green.png",
+    "playerShip2_orange.png",
+    "playerShip2_red.png",
+    "playerShip3_blue.png",
+    "playerShip3_green.png",
+    "playerShip3_orange.png",
+    "playerShip3_red.png",
 ];
 
 pub struct GameSprites {
