@@ -1,9 +1,9 @@
 #[derive(Copy, Clone)]
-pub enum Direction {
-    WEST,
-    NORTH,
-    EAST,
-    SOUTH
+pub enum MoveDirection {
+    Up,
+    Down,
+    Left,
+    Right
 }
 
 pub struct Position {

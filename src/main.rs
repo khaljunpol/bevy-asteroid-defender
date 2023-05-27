@@ -1,39 +1,41 @@
-extern crate defender;
-extern crate piston;
-extern crate graphics;
-extern crate glutin_window;
-extern crate opengl_graphics;
+use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
-use piston::event_loop::*;
-use piston::input::*;
-
-use defender::App;
-use defender::config::GraphicsConfig;
+mod player;
+mod geom;
 
 fn main() {
-    // Original Defenders had a resolution of 320x256
-    let mut app = App::new(GraphicsConfig::new("Defender", 960.0, 768.0));
+ App::new()
+ .add_plugins(DefaultPlugins)
+ .add_startup_system(spawn_player)
+ .add_startup_system(spawn_camera)
+ .add_system(player::player_movement)
+ .add_system(player::confine_player_movement)
+ .run();
+}
 
-    // Poll for events from the window.
-    let mut events = Events::new(EventSettings::new());
-    while let Some(e) = events.next(&mut app.window.settings) {
-        // Handle keyboard input
-        if let Some(i) = e.press_args() {
-            app.input(&i, true);
-        }
+pub fn spawn_player(
+    mut commands: Commands,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    asset_server: Res<AssetServer>,
+){
+    let window: &Window = window_query.get_single().unwrap();
+    let pos: Vec2 = Vec2::new(window.width() / 2.0, window.height() / 2.0);
 
-        if let Some(i) = e.release_args() {
-            app.input(&i, false);
-        }
+    commands.spawn((
+        player::spawn_player(asset_server, pos),
+        player::Player::new(pos)
+    ));
+}
 
-        // Handle rendering
-        if let Some(r) = e.render_args() {
-            app.render(&r);
-        }
+pub fn spawn_camera(
+    mut commands: Commands,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+) {
+    let window: &Window = window_query.get_single().unwrap();
 
-        // Handle any updates
-        if let Some(u) = e.update_args() {
-            app.update(u);
-        }
-    }
+    commands.spawn(Camera2dBundle{
+        transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
+        ..default()
+    });
 }
