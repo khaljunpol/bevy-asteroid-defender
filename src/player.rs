@@ -31,8 +31,7 @@ fn player_movement_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut query: Query<(&PlayerComponent, &mut Velocity, &mut RotationAngle)>,
 ){
-    for (player, mut velocity, mut rotation_angle) in query.iter_mut() {
-
+    if let Ok((player, mut velocity, mut rotation_angle)) = query.get_single_mut() {
         // rotate the player ship
         if keyboard_input.pressed(KeyCode::Left) {
             rotation_angle.0 += PLAYER_TURN_SPEED;
@@ -50,7 +49,5 @@ fn player_movement_system(
         } else if !keyboard_input.pressed(KeyCode::Up) {
             velocity.0 *= 1.0 - PLAYER_DECELERATION;
         }
-
     }
-            
 }

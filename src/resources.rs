@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-pub const PLAYER_SPRITE: &str = "assets/playerShip2_blue.png";
+pub const PLAYER_SPRITE: &str = "sprites/ships/playerShip2_blue.png";
 
 pub const SHIPS_SPRITE: [&str; 12] = [
     "playerShip1_blue.png",
@@ -22,4 +22,10 @@ pub struct GameSprites {
     pub asteroid_xl: Handle<Image>,
     pub asteroid_m: Handle<Image>,
     pub asteroid_s: Handle<Image>,
+}
+
+#[derive(Resource)]
+pub struct WindowSize {
+    pub w: f32,
+    pub h: f32,
 }
