@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::{
     common_components::{Position, RotationAngle, Velocity},
-    resources::WindowSize
+    resources::{WindowSize}
 };
 
 pub fn movement_system(

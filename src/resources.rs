@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use lib::ShipType;
 
 pub const SHIP_NORMAL_SPRITE: &str = "sprites/ships/playerShip1_blue.png";
 pub const SHIP_ATTACK_SPRITE: &str = "sprites/ships/playerShip1_red.png";
@@ -17,10 +16,11 @@ pub const SHIPS_SPRITE: [&str; 9] = [
     "playerShip3_red.png",
 ];
 
+#[derive(Resource)]
 pub struct GameSprites {
     pub ship_type_normal: Handle<Image>,
     pub ship_type_attack: Handle<Image>,
-    pub ship_type_shield: Handle<Image>
+    pub ship_type_shield: Handle<Image>,
 }
 
 #[derive(Resource)]

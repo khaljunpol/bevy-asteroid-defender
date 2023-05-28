@@ -6,6 +6,12 @@ use rand::{
     prelude::*
 };
 
+use crate::
+{
+    player::PlayerComponent, 
+    resources::GameSprites
+};
+
 #[derive(Component)]
 pub struct ShipComponent {
     pub ship_type: ShipType,
@@ -40,15 +46,28 @@ pub struct ShipPlugin;
 
 impl Plugin for ShipPlugin {
     fn build(&self, app: &mut App) {
-        
+        app.add_system(randomize_type_system);
     }
 }
 
 fn randomize_type_system(
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<&mut ShipComponent, With<ShipComponent>>)
+    game_sprites: Res<GameSprites>,
+    mut query: Query<(&mut Handle<Image>, &mut ShipComponent), With<PlayerComponent>>,
+)
 {
-    if let Ok(mut ship) = query.get_single_mut() {
-        
+    for (mut texture_handle, mut ship_component) in query.iter_mut() {
+        if keyboard_input.just_pressed(KeyCode::X) {
+            *ship_component = ShipComponent::new();
+        }
+
+        // Load a new texture and update the handle
+        let new_texture_handle: Handle<Image> = match ship_component.ship_type {
+            ShipType::Attack => game_sprites.ship_type_attack.clone(),
+            ShipType::Shield => game_sprites.ship_type_shield.clone(),
+            ShipType::Normal => game_sprites.ship_type_normal.clone()
+        };
+
+        *texture_handle = new_texture_handle;
     }
 }

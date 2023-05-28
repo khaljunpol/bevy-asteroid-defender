@@ -24,10 +24,6 @@ mod states;
 fn main() {
  App::new()
  .add_state::<GameStates>()
- .insert_resource(WindowSize {
-    w: 1280.0,
-    h: 720.0
- })
  .add_plugins(DefaultPlugins)
  .add_plugin(WorldInspectorPlugin::new())
  .add_plugin(InGameStatePlugin)
@@ -65,13 +61,15 @@ fn startup_system(
         ship_type_normal: asset_server.load(SHIP_NORMAL_SPRITE),
         ship_type_shield: asset_server.load(SHIP_SHIELD_SPRITE),
     };
+    commands.insert_resource(game_sprites);
 
+    // create new ship component
     let newShipComponent = ShipComponent::new();
 
     let playerSprite = match newShipComponent.ship_type {
-        ShipType::Attack => game_sprites.ship_type_attack,
-        ShipType::Shield => game_sprites.ship_type_shield,
-        ShipType::Normal => game_sprites.ship_type_normal,
+        ShipType::Attack => asset_server.load(SHIP_ATTACK_SPRITE),
+        ShipType::Normal => asset_server.load(SHIP_NORMAL_SPRITE),
+        ShipType::Shield => asset_server.load(SHIP_SHIELD_SPRITE),
     };
 
     // spawn player ship
