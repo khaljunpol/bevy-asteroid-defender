@@ -11,6 +11,7 @@ pub const PLAYER_DECELERATION: f32 = 0.01;
 pub const PLAYER_MAX_SPEED: f32 = 7.0;
 pub const SPRITE_SCALE: f32 = 0.5;
 
+// Ship Settings
 pub const DEFAULT_STATS: [(ShipType, Stats); 3] = [
     (ShipType::Normal, Stats {
         hp: 75.0,
@@ -57,3 +58,17 @@ impl Distribution<ShipType> for Standard {
     }
 }
 
+// Power Settings
+#[derive(Copy, Clone)]
+pub enum PowerUpType {
+    ChangeShipType
+}
+
+impl Distribution<PowerUpType> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PowerUpType {
+        match rng.gen_range(0..1) {
+            0 => PowerUpType::ChangeShipType,
+            _ => PowerUpType::ChangeShipType,
+        }
+    }
+}

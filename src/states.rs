@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use crate::{
     common_systems::{
-        movement_system, update_transform_system, update_rotation_system
+        movement_system, update_transform_system, update_rotation_system,
+        spawn_powerup_system
     }
 };
 
@@ -26,6 +27,7 @@ impl Plugin for InGameStatePlugin {
     fn build(&self, app: &mut App) {
         app.add_system(movement_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(update_transform_system.in_set(OnUpdate(GameStates::InGame)))
-        .add_system(update_rotation_system.in_set(OnUpdate(GameStates::InGame)));
+        .add_system(update_rotation_system.in_set(OnUpdate(GameStates::InGame)))
+        .add_system(spawn_powerup_system.in_schedule(OnEnter(GameStates::InGame)));
     }
 }

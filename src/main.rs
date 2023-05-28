@@ -6,18 +6,23 @@ use lib::ShipType;
 use crate::{
     common_components::{Position, RotationAngle, Velocity},
     resources::{WindowSize},
+    powerup::PowerUpPlugin,
     states::{InGameStatePlugin, GameStates},
     player::{PlayerComponent, PlayerPlugin},
     ship::{ShipPlugin, ShipComponent},
     resources::{
-        GameSprites, SHIP_ATTACK_SPRITE,SHIP_NORMAL_SPRITE,SHIP_SHIELD_SPRITE
+        GameSprites, SHIP_ATTACK_SPRITE,SHIP_NORMAL_SPRITE,SHIP_SHIELD_SPRITE,
+        POWERUP_CHANGE_NORMAL_SPRITE, POWERUP_CHANGE_ATTACK_SPRITE, POWERUP_CHANGE_SHIELD_SPRITE
     }
 };
 
 mod player;
 mod ship;
+mod powerup;
+
 mod common_components;
 mod common_systems;
+
 mod resources;
 mod states;
 
@@ -29,6 +34,7 @@ fn main() {
  .add_plugin(InGameStatePlugin)
  .add_plugin(PlayerPlugin)
  .add_plugin(ShipPlugin)
+ .add_plugin(PowerUpPlugin)
  .add_startup_system(startup_system)
  .run();
 }
@@ -42,24 +48,26 @@ fn startup_system(
     // get singleton window
     let window: &Window = window_query.get_single().unwrap();
     WindowResolution::new(1280.0, 720.0);
-    let (win_w, win_h) = (window.width(), window.height());
+    let (wdw_w, wdw_h) = (window.width(), window.height());
     let (center_x, center_y) = (window.width() / 2.0, window.height() / 2.0);
 
     // spawn camera
     commands.spawn(Camera2dBundle{
-        // transform: Transform::from_xyz(center_x, center_y, 0.0),
         ..default()
     });
 
     // add WinSize resource
-    let win_size = WindowSize { w: win_w, h: win_h };
-    commands.insert_resource(win_size);
+    let wdw_size = WindowSize { w: wdw_w, h: wdw_h };
+    commands.insert_resource(wdw_size);
 
     // add GameSprites resource
     let game_sprites = GameSprites {
         ship_type_attack: asset_server.load(SHIP_ATTACK_SPRITE),
         ship_type_normal: asset_server.load(SHIP_NORMAL_SPRITE),
         ship_type_shield: asset_server.load(SHIP_SHIELD_SPRITE),
+        powerup_change_normal: asset_server.load(POWERUP_CHANGE_NORMAL_SPRITE),
+        powerup_change_attack: asset_server.load(POWERUP_CHANGE_ATTACK_SPRITE),
+        powerup_change_shield: asset_server.load(POWERUP_CHANGE_SHIELD_SPRITE),
     };
     commands.insert_resource(game_sprites);
 
