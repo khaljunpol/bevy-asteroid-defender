@@ -5,19 +5,20 @@ use lib::{
     PLAYER_MAX_SPEED
 };
 use crate::common_components::{
-    Velocity, Position, RotationAngle
+    Velocity, RotationAngle
 };
 
 #[derive(Component)]
 pub struct PlayerComponent;
 
 impl PlayerComponent {
-    pub fn direction(&self, rotation_angle: f32) -> Vec2 {
+    fn direction(&self, rotation_angle: f32) -> Vec2 {
         let (y, x) = (rotation_angle + PI / 2.0).sin_cos();
 
         Vec2::new(x, y)
     }
 }
+
 
 pub struct PlayerPlugin;
 
