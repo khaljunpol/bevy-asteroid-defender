@@ -1,9 +1,10 @@
 use bevy::prelude::*;
+use lib::{POWER_UP_SIZE, POWERUP_MAX_COUNT};
 use rand::{
     prelude::*
 };
 use crate::{
-    common_components::{Position, RotationAngle, Velocity},
+    common_components::{Position, RotationAngle, Velocity, HitBoxSize},
     resources::{WindowSize, GameSprites}, powerup::PowerUpComponent
 };
 
@@ -54,50 +55,46 @@ pub fn spawn_powerup_system(
     mut commands: Commands,
     game_sprites: Res<GameSprites>,
     wdw_size: Res<WindowSize>,
+    mut query: Query<With<PowerUpComponent>>,
 )
 {
-    let mut rng = thread_rng();
-    let max_dist = wdw_size.w.min(wdw_size.h) / 2.0;
-    let min_dist = 320.0;
+    let mut count = 0;
+    for _ in query.iter() {
+        count += 1;
+    }
 
-    let dist_range = min_dist..max_dist;
-    let angle_range = 0.0..50.0 as f32;
-
-    let angles = vec![
-        (
-            rng.gen_range(angle_range.clone()),
-            rng.gen_range(dist_range.clone()),
-        ),
-        (
-            rng.gen_range(angle_range.clone()) + 120.0,
-            rng.gen_range(dist_range.clone()),
-        ),
-        (
-            rng.gen_range(angle_range.clone()) + 240.0,
-            rng.gen_range(dist_range.clone()),
-        )
-    ];
-
-    for (angle, dist) in angles.iter() {
+    if(count < POWERUP_MAX_COUNT){
+        let mut rng = thread_rng();
+        let max_dist = wdw_size.w.min(wdw_size.h) / 2.0;
+        let min_dist = 320.0;
+    
+        let dist_range = min_dist..max_dist;
+        let angle_range = 0.0..50.0 as f32;
+    
+        let angle = rng.gen_range(angle_range.clone());
+        let dist = rng.gen_range(dist_range.clone());
+        
         // calculating coordinates to spawn
         let (x, y) = angle.to_radians().sin_cos();
         let position = Vec2::new(x * dist, y * dist);
-
+    
         // randomizing the starting rotation angle of the asteroids
         let rotation = rng.gen_range(-0.1..0.1) as f32;
-
+    
         // randomizing movement speed
         let speed = Vec2::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0));
-
+    
         // randomizing rotation speed
         let rot_speed =
             rng.gen_range(-0.1..0.1) as f32;
-
+    
+        let powerup_position = Vec3::new(position.x, position.y, 1.0);
+    
         commands
             .spawn(SpriteBundle {
                 texture: game_sprites.powerup_change_normal.clone(),
                 transform: Transform {
-                    translation: Vec3::new(position.x, position.y, 10.),
+                    translation: powerup_position,
                     rotation: Quat::from_rotation_z(rotation),
                     scale: Vec3::new(1.0, 1.0 ,1.0),
                     ..Default::default()
@@ -106,6 +103,7 @@ pub fn spawn_powerup_system(
             })
             .insert(Name::new("Power Up"))
             .insert(PowerUpComponent::new(rot_speed))
+            .insert(HitBoxSize(POWER_UP_SIZE))
             .insert(Velocity(Vec2::from(speed)))
             .insert(Position(Vec2::new(position.x, position.y)))
             .insert(RotationAngle(rotation));

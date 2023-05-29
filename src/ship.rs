@@ -26,6 +26,12 @@ impl ShipComponent {
         ShipComponent { ship_type, stats }
     }
 
+    pub fn new_type(ship_type: ShipType) -> ShipComponent {
+        let stats = Self::get_stats_from_type(ship_type);
+
+        ShipComponent { ship_type, stats }
+    }
+
     fn randomize_type() -> ShipType {
         let mut rng = thread_rng();
         // Generate a random ShipType

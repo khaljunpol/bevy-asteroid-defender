@@ -2,6 +2,9 @@ use bevy::prelude::*;
 use lib::Stats;
 
 #[derive(Component)]
+pub struct HitBoxSize(pub Vec2);
+
+#[derive(Component)]
 pub struct Velocity(pub Vec2);
 
 #[derive(Component)]

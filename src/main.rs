@@ -1,7 +1,8 @@
 use bevy::{prelude::*, window::WindowResolution};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::window::PrimaryWindow;
-use lib::ShipType;
+use common_components::HitBoxSize;
+use lib::{ShipType, PLAYER_SIZE};
 
 use crate::{
     common_components::{Position, RotationAngle, Velocity},
@@ -22,6 +23,7 @@ mod powerup;
 
 mod common_components;
 mod common_systems;
+mod collision;
 
 mod resources;
 mod states;
@@ -94,6 +96,7 @@ fn startup_system(
         .insert(Name::new("Player"))
         .insert(PlayerComponent)
         .insert(newShipComponent)
+        .insert(HitBoxSize(PLAYER_SIZE))
         .insert(Velocity(Vec2::splat(0.0)))
         .insert(Position(Vec2::splat(0.0)))
         .insert(RotationAngle(0.0));

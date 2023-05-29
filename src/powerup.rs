@@ -5,8 +5,8 @@ use rand::{
 use lib::{PowerUpType, ShipType};
 
 use crate::{
-    common_components::{Position, RotationAngle, Velocity},
-    resources::{WindowSize, GameSprites}, states::GameStates
+    common_components::{RotationAngle},
+    resources::{GameSprites}
 };
 
 #[derive(Component)]
@@ -28,7 +28,14 @@ impl PowerUpComponent {
             _ => ShipType::Normal,
         };
 
-        PowerUpComponent { powerup_type, rotation_speed, change_target, isSpriteUpdated: false }
+        PowerUpComponent { powerup_type, 
+            rotation_speed, change_target, 
+            isSpriteUpdated: false
+         }
+    }
+
+    pub fn get_ship_change_type(&self) -> ShipType {
+        return self.change_target;
     }
 
     fn randomize_type() -> PowerUpType {
