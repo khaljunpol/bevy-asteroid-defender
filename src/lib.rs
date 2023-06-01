@@ -6,6 +6,7 @@ use rand::{
 
 pub const PLAYER_SIZE: Vec2 = Vec2::new(50.0, 50.0);
 pub const POWER_UP_SIZE: Vec2 = Vec2::new(33.0, 33.0);
+pub const PROJECTILE_SIZE: Vec2 = Vec2::new(9., 54.);
 
 pub const PLAYER_TURN_SPEED: f32 = 8.0 * PI / 360.0;
 pub const PLAYER_ACCELERATION: f32 = 0.1;
@@ -15,6 +16,9 @@ pub const SPRITE_SCALE: f32 = 0.5;
 
 pub const POWERUP_SPAWN_TIME: f32 = 5.0;
 pub const POWERUP_MAX_COUNT: i32 = 3;
+
+pub const PROJECTILE_DESPAWN_TIME: f32 = 3.0;
+pub const PROJECTILE_SPEED: f32 = 10.0;
 
 // Ship Settings
 pub const DEFAULT_STATS: [(ShipType, Stats); 3] = [

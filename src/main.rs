@@ -13,13 +13,16 @@ use crate::{
     ship::{ShipPlugin, ShipComponent},
     resources::{
         GameSprites, SHIP_ATTACK_SPRITE,SHIP_NORMAL_SPRITE,SHIP_SHIELD_SPRITE,
-        POWERUP_CHANGE_NORMAL_SPRITE, POWERUP_CHANGE_ATTACK_SPRITE, POWERUP_CHANGE_SHIELD_SPRITE
-    }
+        POWERUP_CHANGE_NORMAL_SPRITE, POWERUP_CHANGE_ATTACK_SPRITE, POWERUP_CHANGE_SHIELD_SPRITE,
+        PROJECTILE_NORMAL_SPRITE, PROJECTILE_ATTACK_SPRITE, PROJECTILE_SHIELD_SPRITE
+    },
+    projectile::ProjectilePlugin
 };
 
 mod player;
 mod ship;
 mod powerup;
+mod projectile;
 
 mod common_components;
 mod common_systems;
@@ -37,6 +40,7 @@ fn main() {
  .add_plugin(PlayerPlugin)
  .add_plugin(ShipPlugin)
  .add_plugin(PowerUpPlugin)
+ .add_plugin(ProjectilePlugin)
  .add_startup_system(startup_system)
  .run();
 }
@@ -70,6 +74,9 @@ fn startup_system(
         powerup_change_normal: asset_server.load(POWERUP_CHANGE_NORMAL_SPRITE),
         powerup_change_attack: asset_server.load(POWERUP_CHANGE_ATTACK_SPRITE),
         powerup_change_shield: asset_server.load(POWERUP_CHANGE_SHIELD_SPRITE),
+        projectile_normal: asset_server.load(PROJECTILE_NORMAL_SPRITE),
+        projectile_attack: asset_server.load(PROJECTILE_ATTACK_SPRITE),
+        projectile_shield: asset_server.load(PROJECTILE_SHIELD_SPRITE)
     };
     commands.insert_resource(game_sprites);
 

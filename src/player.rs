@@ -12,7 +12,7 @@ use crate::common_components::{
 pub struct PlayerComponent;
 
 impl PlayerComponent {
-    fn direction(&self, rotation_angle: f32) -> Vec2 {
+    pub fn direction(&self, rotation_angle: f32) -> Vec2 {
         let (y, x) = (rotation_angle + PI / 2.0).sin_cos();
 
         Vec2::new(x, y)
