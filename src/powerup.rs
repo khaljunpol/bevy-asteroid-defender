@@ -15,7 +15,7 @@ pub struct PowerUpComponent {
     pub powerup_type: PowerUpType,
 
     change_target: ShipType,
-    isSpriteUpdated: bool
+    is_sprite_updated: bool
 }
 
 impl PowerUpComponent {
@@ -30,7 +30,7 @@ impl PowerUpComponent {
 
         PowerUpComponent { powerup_type, 
             rotation_speed, change_target, 
-            isSpriteUpdated: false
+            is_sprite_updated: false
          }
     }
 
@@ -66,7 +66,7 @@ fn powerup_change_sprite_system(
 )
 {
     for (mut texture_handle, mut powerup) in query.iter_mut() {
-        if !powerup.isSpriteUpdated {
+        if !powerup.is_sprite_updated {
             // Load a new texture and update the handle
             let new_texture_handle: Handle<Image> = match powerup.powerup_type {
                 PowerUpType::ChangeShipType => {
@@ -80,7 +80,7 @@ fn powerup_change_sprite_system(
 
             *texture_handle = new_texture_handle;
 
-            powerup.isSpriteUpdated = true;
+            powerup.is_sprite_updated = true;
         }
     }
 }

@@ -55,7 +55,7 @@ pub fn spawn_powerup_system(
     mut commands: Commands,
     game_sprites: Res<GameSprites>,
     wdw_size: Res<WindowSize>,
-    mut query: Query<With<PowerUpComponent>>,
+    query: Query<With<PowerUpComponent>>,
 )
 {
     let mut count = 0;
@@ -63,15 +63,16 @@ pub fn spawn_powerup_system(
         count += 1;
     }
 
-    if(count < POWERUP_MAX_COUNT){
+    if count < POWERUP_MAX_COUNT {
         let mut rng = thread_rng();
         let max_dist = wdw_size.w.min(wdw_size.h) / 2.0;
         let min_dist = 320.0;
     
         let dist_range = min_dist..max_dist;
-        let angle_range = 0.0..50.0 as f32;
     
-        let angle = rng.gen_range(angle_range.clone());
+        let angle_idx = rng.gen_range(0..5);
+        let angle = (angle_idx * 90) as f32;
+
         let dist = rng.gen_range(dist_range.clone());
         
         // calculating coordinates to spawn

@@ -7,10 +7,10 @@ use rand::{
 pub const PLAYER_SIZE: Vec2 = Vec2::new(50.0, 50.0);
 pub const POWER_UP_SIZE: Vec2 = Vec2::new(33.0, 33.0);
 
-pub const PLAYER_TURN_SPEED: f32 = 5.0 * 2.0 * PI / 360.0;
-pub const PLAYER_ACCELERATION: f32 = 0.2;
+pub const PLAYER_TURN_SPEED: f32 = 8.0 * PI / 360.0;
+pub const PLAYER_ACCELERATION: f32 = 0.1;
 pub const PLAYER_DECELERATION: f32 = 0.01;
-pub const PLAYER_MAX_SPEED: f32 = 7.0;
+pub const PLAYER_MAX_SPEED: f32 = 4.0;
 pub const SPRITE_SCALE: f32 = 0.5;
 
 pub const POWERUP_SPAWN_TIME: f32 = 5.0;

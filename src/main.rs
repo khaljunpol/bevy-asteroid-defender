@@ -74,9 +74,9 @@ fn startup_system(
     commands.insert_resource(game_sprites);
 
     // create new ship component
-    let newShipComponent = ShipComponent::new();
+    let new_ship_component = ShipComponent::new();
 
-    let playerSprite = match newShipComponent.ship_type {
+    let player_sprite = match new_ship_component.ship_type {
         ShipType::Attack => asset_server.load(SHIP_ATTACK_SPRITE),
         ShipType::Normal => asset_server.load(SHIP_NORMAL_SPRITE),
         ShipType::Shield => asset_server.load(SHIP_SHIELD_SPRITE),
@@ -85,7 +85,7 @@ fn startup_system(
     // spawn player ship
     commands
         .spawn(SpriteBundle {
-            texture: playerSprite,
+            texture: player_sprite,
             transform: Transform {
                 translation: Vec3::new(center_x, center_y, 0.0),
                 scale: Vec3::new(0.5, 0.5, 1.),
@@ -95,7 +95,7 @@ fn startup_system(
         })
         .insert(Name::new("Player"))
         .insert(PlayerComponent)
-        .insert(newShipComponent)
+        .insert(new_ship_component)
         .insert(HitBoxSize(PLAYER_SIZE))
         .insert(Velocity(Vec2::splat(0.0)))
         .insert(Position(Vec2::splat(0.0)))

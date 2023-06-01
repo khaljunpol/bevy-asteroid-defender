@@ -38,9 +38,9 @@ impl ShipComponent {
         rng.gen()
     }
 
-    fn get_stats_from_type(ship_type: ShipType) -> Stats {
+    fn get_stats_from_type(_ship_type: ShipType) -> Stats {
         for (st, stats) in DEFAULT_STATS {
-            if matches!(st, ship_type) {
+            if matches!(st, _ship_type) {
                 return stats;
             }
         }

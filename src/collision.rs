@@ -1,8 +1,5 @@
 use bevy::{math::Vec3Swizzles, prelude::*, sprite::collide_aabb::collide};
 use lib::ShipType;
-use rand::{
-    prelude::*
-};
 
 use std::collections::HashSet;
 
@@ -21,7 +18,6 @@ pub fn player_collide_powerup_system(
     mut ship_type_query: Query<(&mut Handle<Image>, &mut ShipComponent), With<PlayerComponent>>,
 ){
     let mut despawned_entities: HashSet<Entity> = HashSet::new();
-    let mut rng = thread_rng();
     
     // Iterate through player
     for (player_tf, player_hitbox) in player_query.iter() {
