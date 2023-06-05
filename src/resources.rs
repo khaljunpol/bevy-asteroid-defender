@@ -30,3 +30,11 @@ pub struct WindowSize {
     pub w: f32,
     pub h: f32,
 }
+
+#[derive(Resource)]
+pub struct WindowDespawnBorder {
+    pub top: f32,
+    pub bottom: f32,
+    pub left: f32,
+    pub right: f32,
+}

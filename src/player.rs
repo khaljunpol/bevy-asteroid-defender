@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use lib::{
     PLAYER_ACCELERATION, PLAYER_DECELERATION, PLAYER_TURN_SPEED, 
-    PLAYER_MAX_SPEED
+    PLAYER_MAX_SPEED, PLAYER_SHOOT_COOLDOWN
 };
 use crate::common_components::{
     Velocity, RotationAngle
@@ -19,6 +19,14 @@ impl PlayerComponent {
     }
 }
 
+#[derive(Component)]
+pub struct PlayerShootCooldownComponent(pub Timer);
+
+impl Default for PlayerShootCooldownComponent {
+    fn default() -> Self {
+        Self(Timer::from_seconds(PLAYER_SHOOT_COOLDOWN, TimerMode::Once))
+    }
+}
 
 pub struct PlayerPlugin;
 

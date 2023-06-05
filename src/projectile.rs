@@ -1,10 +1,10 @@
 use bevy::prelude::*;
-use lib::{PROJECTILE_DESPAWN_TIME, ShipType, PROJECTILE_SIZE, PROJECTILE_SPEED};
+use lib::{PROJECTILE_DESPAWN_TIME, ShipType, PROJECTILE_SIZE, PROJECTILE_SPEED, SPRITE_SCALE};
 
 use crate::{
     resources::GameSprites, 
-    player::PlayerComponent, 
-    common_components::{RotationAngle, Position, HitBoxSize, Velocity}, 
+    player::{PlayerComponent, PlayerShootCooldownComponent}, 
+    common_components::{RotationAngle, Position, HitBoxSize, Velocity, BoundsDespawnable}, 
     ship::ShipComponent
 };
 
@@ -47,12 +47,14 @@ fn projectile_shoot_system(
     mut commands: Commands,
     kb: Res<Input<KeyCode>>,
     game_sprites: Res<GameSprites>,
-    mut ship_query: Query<(&ShipComponent), With<PlayerComponent>>,
-    mut query: Query<(&PlayerComponent, &RotationAngle, &Position)>,
+    time: Res<Time>,
+    mut ship_query: Query<&ShipComponent, With<PlayerComponent>>,
+    mut query: Query<(&PlayerComponent, &RotationAngle, &Position, &mut PlayerShootCooldownComponent)>,
 ) {
-    
-    for (player, rotation_angle, position) in query.iter_mut() {
+    for (player, rotation_angle, position, mut shoot_cd) in query.iter_mut() {
         if let Ok(ship) = ship_query.get_single_mut() {
+            shoot_cd.0.tick(time.delta());
+            let mut has_fired = false;
 
             let laser_texture_handle: Handle<Image> = match ship.ship_type {
                 ShipType::Attack => game_sprites.projectile_attack.clone(),
@@ -60,26 +62,36 @@ fn projectile_shoot_system(
                 ShipType::Normal => game_sprites.projectile_normal.clone(),
             };
 
-            if kb.pressed(KeyCode::Space) {
-                commands
-                    .spawn(SpriteBundle {
-                        texture: laser_texture_handle,
-                        transform: Transform {
-                            translation: Vec3::new(position.0.x, position.0.y, 5.),
-                            scale: Vec3::new(0.5, 0.5, 1.),
-                            rotation: Quat::from_rotation_z(rotation_angle.0),
+            if shoot_cd.0.finished() {
+                if kb.pressed(KeyCode::Space) {
+
+                    commands
+                        .spawn(SpriteBundle {
+                            texture: laser_texture_handle,
+                            transform: Transform {
+                                translation: Vec3::new(position.0.x, position.0.y, 5.),
+                                scale: Vec3::new(SPRITE_SCALE, SPRITE_SCALE, 1.),
+                                rotation: Quat::from_rotation_z(rotation_angle.0),
+                                ..Default::default()
+                            },
                             ..Default::default()
-                        },
-                        ..Default::default()
-                    })
-                    .insert(Name::new("Player laser"))
-                    .insert(ProjectileComponent)
-                    .insert(ProjectileDespawnComponent::default())
-                    .insert(HitBoxSize(PROJECTILE_SIZE))
-                    .insert(Velocity(
-                        player.direction(rotation_angle.0).normalize() * PROJECTILE_SPEED,
-                    ))
-                    .insert(Position(position.0.clone()));
+                        })
+                        .insert(Name::new("Player laser"))
+                        .insert(ProjectileComponent)
+                        .insert(ProjectileDespawnComponent::default())
+                        .insert(HitBoxSize(PROJECTILE_SIZE))
+                        .insert(Velocity(
+                            player.direction(rotation_angle.0).normalize() * PROJECTILE_SPEED,
+                        ))
+                        .insert(Position(position.0.clone()))
+                        .insert(BoundsDespawnable());
+
+                        has_fired = true;
+                }
+
+                if has_fired {
+                    shoot_cd.0.reset();
+                }
             }
         }
     }

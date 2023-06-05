@@ -1,8 +1,10 @@
 use bevy::{prelude::*, window::WindowResolution};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::window::PrimaryWindow;
-use common_components::HitBoxSize;
-use lib::{ShipType, PLAYER_SIZE};
+use common_components::{HitBoxSize, BoundsWarpable};
+use lib::{ShipType, PLAYER_SIZE, BORDER_EXTRA_SPACE};
+use player::PlayerShootCooldownComponent;
+use resources::WindowDespawnBorder;
 
 use crate::{
     common_components::{Position, RotationAngle, Velocity},
@@ -66,6 +68,15 @@ fn startup_system(
     let wdw_size = WindowSize { w: wdw_w, h: wdw_h };
     commands.insert_resource(wdw_size);
 
+    // add Despawn Border resource
+    let despawn_border = WindowDespawnBorder {
+        top: center_y + BORDER_EXTRA_SPACE,
+        bottom: -center_y - BORDER_EXTRA_SPACE,
+        left: -center_x - BORDER_EXTRA_SPACE,
+        right: center_x + BORDER_EXTRA_SPACE,
+    };
+    commands.insert_resource(despawn_border);
+
     // add GameSprites resource
     let game_sprites = GameSprites {
         ship_type_attack: asset_server.load(SHIP_ATTACK_SPRITE),
@@ -103,8 +114,10 @@ fn startup_system(
         .insert(Name::new("Player"))
         .insert(PlayerComponent)
         .insert(new_ship_component)
+        .insert(PlayerShootCooldownComponent::default())
         .insert(HitBoxSize(PLAYER_SIZE))
         .insert(Velocity(Vec2::splat(0.0)))
         .insert(Position(Vec2::splat(0.0)))
-        .insert(RotationAngle(0.0));
+        .insert(RotationAngle(0.0))
+        .insert(BoundsWarpable());
 }

@@ -12,9 +12,13 @@ pub const PLAYER_TURN_SPEED: f32 = 8.0 * PI / 360.0;
 pub const PLAYER_ACCELERATION: f32 = 0.1;
 pub const PLAYER_DECELERATION: f32 = 0.01;
 pub const PLAYER_MAX_SPEED: f32 = 4.0;
+pub const PLAYER_SHOOT_COOLDOWN: f32 = 0.5;
+
+pub const BORDER_EXTRA_SPACE: f32 = 100.0;
+
 pub const SPRITE_SCALE: f32 = 0.5;
 
-pub const POWERUP_SPAWN_TIME: f32 = 5.0;
+pub const POWERUP_SPAWN_TIME: f32 = 2.0;
 pub const POWERUP_MAX_COUNT: i32 = 3;
 
 pub const PROJECTILE_DESPAWN_TIME: f32 = 3.0;
