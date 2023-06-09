@@ -8,6 +8,10 @@ pub const PLAYER_SIZE: Vec2 = Vec2::new(50.0, 50.0);
 pub const POWER_UP_SIZE: Vec2 = Vec2::new(33.0, 33.0);
 pub const PROJECTILE_SIZE: Vec2 = Vec2::new(9., 54.);
 
+pub const METEOR_BIG_SIZE: Vec2 = Vec2::new(120.0, 98.0);
+pub const METEOR_MED_SIZE: Vec2 = Vec2::new(43.0, 43.0);
+pub const METEOR_SML_SIZE: Vec2 = Vec2::new(28.0, 28.0);
+
 pub const PLAYER_TURN_SPEED: f32 = 8.0 * PI / 360.0;
 pub const PLAYER_ACCELERATION: f32 = 0.1;
 pub const PLAYER_DECELERATION: f32 = 0.01;
@@ -18,8 +22,11 @@ pub const BORDER_EXTRA_SPACE: f32 = 100.0;
 
 pub const SPRITE_SCALE: f32 = 0.5;
 
-pub const POWERUP_SPAWN_TIME: f32 = 2.0;
+pub const POWERUP_SPAWN_TIME: f32 = 5.0;
 pub const POWERUP_MAX_COUNT: i32 = 3;
+
+pub const METEOR_SPAWN_TIME: f32 = 2.0;
+pub const METEOR_MAX_COUNT: i32 = 10;
 
 pub const PROJECTILE_DESPAWN_TIME: f32 = 3.0;
 pub const PROJECTILE_SPEED: f32 = 10.0;

@@ -1,13 +1,11 @@
 use bevy::{prelude::*, window::WindowResolution};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::window::PrimaryWindow;
-use common_components::{HitBoxSize, BoundsWarpable};
 use lib::{ShipType, PLAYER_SIZE, BORDER_EXTRA_SPACE};
-use player::PlayerShootCooldownComponent;
-use resources::WindowDespawnBorder;
+use meteor::MeteorPlugin;
 
 use crate::{
-    common_components::{Position, RotationAngle, Velocity},
+    common_components::{Position, RotationAngle, Velocity, HitBoxSize, BoundsWarpable},
     resources::{WindowSize},
     powerup::PowerUpPlugin,
     states::{InGameStatePlugin, GameStates},
@@ -16,15 +14,18 @@ use crate::{
     resources::{
         GameSprites, SHIP_ATTACK_SPRITE,SHIP_NORMAL_SPRITE,SHIP_SHIELD_SPRITE,
         POWERUP_CHANGE_NORMAL_SPRITE, POWERUP_CHANGE_ATTACK_SPRITE, POWERUP_CHANGE_SHIELD_SPRITE,
-        PROJECTILE_NORMAL_SPRITE, PROJECTILE_ATTACK_SPRITE, PROJECTILE_SHIELD_SPRITE
+        PROJECTILE_NORMAL_SPRITE, PROJECTILE_ATTACK_SPRITE, PROJECTILE_SHIELD_SPRITE,
+        WindowDespawnBorder, METEOR_BIG_SPRITE, METEOR_MED_SPRITE, METEOR_SML_SPRITE
     },
-    projectile::ProjectilePlugin
+    projectile::ProjectilePlugin,
+    player::PlayerShootCooldownComponent
 };
 
 mod player;
 mod ship;
 mod powerup;
 mod projectile;
+mod meteor;
 
 mod common_components;
 mod common_systems;
@@ -42,6 +43,7 @@ fn main() {
  .add_plugin(PlayerPlugin)
  .add_plugin(ShipPlugin)
  .add_plugin(PowerUpPlugin)
+ .add_plugin(MeteorPlugin)
  .add_plugin(ProjectilePlugin)
  .add_startup_system(startup_system)
  .run();
@@ -87,7 +89,10 @@ fn startup_system(
         powerup_change_shield: asset_server.load(POWERUP_CHANGE_SHIELD_SPRITE),
         projectile_normal: asset_server.load(PROJECTILE_NORMAL_SPRITE),
         projectile_attack: asset_server.load(PROJECTILE_ATTACK_SPRITE),
-        projectile_shield: asset_server.load(PROJECTILE_SHIELD_SPRITE)
+        projectile_shield: asset_server.load(PROJECTILE_SHIELD_SPRITE),
+        meteor_big: asset_server.load(METEOR_BIG_SPRITE),
+        meteor_med: asset_server.load(METEOR_MED_SPRITE),
+        meteor_sml: asset_server.load(METEOR_SML_SPRITE),
     };
     commands.insert_resource(game_sprites);
 
