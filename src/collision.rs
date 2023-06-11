@@ -4,10 +4,10 @@ use lib::ShipType;
 use std::collections::HashSet;
 
 use crate::{
-    common_components::{HitBoxSize}, 
+    common_components::{HitBoxSize, MeteorCollisionComponent}, 
     player::PlayerComponent, 
     powerup::PowerUpComponent, resources::{GameSprites}, 
-    ship::ShipComponent
+    ship::ShipComponent, projectile::{ProjectileDespawnComponent, ProjectileComponent}, meteor::MeteorComponent
 };
 
 pub fn player_collide_powerup_system(
@@ -58,6 +58,69 @@ pub fn player_collide_powerup_system(
                     };
 
                     *texture_handle = new_texture_handle;
+                }
+            }
+        }
+    }
+}
+
+
+
+pub fn player_projectile_hit_asteroid_system(
+    mut commands: Commands,
+    projectile_query: Query<
+        (Entity, &Transform, &HitBoxSize, &ProjectileDespawnComponent),
+        (With<ProjectileComponent>),
+    >,
+    meteor_query: Query<(Entity, &Transform, &HitBoxSize, &MeteorComponent), With<MeteorComponent>>,
+) {
+    let mut despawned_entities: HashSet<Entity> = HashSet::new();
+
+    // Iterate through player lasers
+    for (proj_entity, proj_tf, proj_size, despawn_timer) in projectile_query.iter() {
+        if despawned_entities.contains(&proj_entity) || despawn_timer.0.just_finished() {
+            continue;
+        }
+
+        let laser_scale = proj_tf.scale.xy();
+
+        // Iterate trough asteroids
+        for (asteroid_entity, asteroid_tf, asteroid_size, asteroid) in meteor_query.iter() {
+            if despawned_entities.contains(&asteroid_entity)
+                || despawned_entities.contains(&proj_entity)
+                || despawn_timer.0.just_finished()
+            {
+                continue;
+            }
+
+            let asteroid_scale = asteroid_tf.scale.xy();
+
+            let collision = collide(
+                proj_tf.translation,
+                proj_size.0 * laser_scale,
+                asteroid_tf.translation,
+                asteroid_size.0 * asteroid_scale,
+            );
+
+            // Check for collision
+            if collision.is_some() {
+                // Remove the asteroid
+                commands.entity(asteroid_entity).despawn();
+                despawned_entities.insert(asteroid_entity);
+
+                // Remove the player laser
+                commands.entity(proj_entity).despawn();
+                despawned_entities.insert(proj_entity);
+
+                // Store position to spawn smaller asteroids
+                if asteroid.size > 0 {
+                    commands
+                        .spawn(())
+                        .insert(MeteorCollisionComponent {
+                            size: asteroid.size - 1,
+                            translation: asteroid_tf.translation.clone(),
+                        })
+                        .insert(Name::new("Meteor Collision"));
                 }
             }
         }

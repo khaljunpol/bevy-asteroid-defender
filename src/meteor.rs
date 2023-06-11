@@ -3,9 +3,9 @@ use rand::{
     prelude::*
 };
 
-use lib::{METEOR_BIG_SIZE, METEOR_MAX_COUNT};
+use lib::{METEOR_BIG_SIZE, METEOR_MAX_COUNT, METEOR_MED_SIZE, METEOR_SML_SIZE};
 use crate::{
-    common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize},
+    common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize, MeteorCollisionComponent},
     resources::{GameSprites, WindowSize}, 
     utils::{get_angle_to_target, calculate_max_spawn_distance}, 
     player::PlayerComponent
@@ -13,14 +13,19 @@ use crate::{
 
 #[derive(Component)]
 pub struct MeteorComponent{
+    pub size: i32,
     pub rotation_speed: f32
 }
 
 impl MeteorComponent{
     pub fn new(rotation_speed: f32) -> MeteorComponent {
-        MeteorComponent {rotation_speed}
+        MeteorComponent {
+            size: 3,
+            rotation_speed
+        }
     }
 }
+
 
 pub struct MeteorPlugin;
 
@@ -38,7 +43,7 @@ fn meteor_rotation_system(mut query: Query<(&MeteorComponent, &mut RotationAngle
 
 pub fn spawn_meteor_system(
     mut commands: Commands,
-    game_sprites: Res<GameSprites>,
+    mut game_sprites: Res<GameSprites>,
     wdw_size: Res<WindowSize>,
     query: Query<With<MeteorComponent>>,
     player_query: Query<(&Position, With<PlayerComponent>)>,
@@ -82,25 +87,113 @@ pub fn spawn_meteor_system(
         let rot_velocity = get_angle_to_target(player_position.0, position);
 
         let powerup_position = Vec3::new(position.x, position.y, 1.0);
-    
-        commands
-            .spawn(SpriteBundle {
-                texture: game_sprites.meteor_big.clone(),
-                transform: Transform {
-                    translation: powerup_position,
-                    rotation: Quat::from_rotation_z(rotation),
-                    scale: Vec3::new(1.0, 1.0 ,1.0),
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
-            .insert(Name::new("Meteor"))
-            .insert(MeteorComponent::new(rot_speed))
-            .insert(HitBoxSize(METEOR_BIG_SIZE))
-            .insert(Velocity(Vec2::from(rot_velocity)))
-            .insert(Position(Vec2::new(position.x, position.y)))
-            .insert(RotationAngle(rotation))
-            .insert(BoundsDespawnable(Vec2::new(center.x, center.y)));
-        
+
+        spawn_meteor(
+            &mut commands,
+            &mut game_sprites,
+            3,
+            METEOR_BIG_SIZE,
+            powerup_position,
+            position,
+            rotation,
+            rot_speed,
+            rot_velocity,
+            Vec2::new(center.x, center.y)
+        );
     }
+}
+
+
+pub fn meteor_collision_spawn_system(
+    mut commands: Commands,
+    mut game_sprites: Res<GameSprites>,
+    wdw_size: Res<WindowSize>,
+    query: Query<(Entity, &MeteorCollisionComponent)>,
+) {
+    let mut rng = thread_rng();
+    let center = Vec2::new(wdw_size.w / 2.0, wdw_size.h / 2.0);
+
+    for (entity, collision) in query.iter() {
+        if collision.size > 0 {
+            // split the into smaller pieces
+            for _ in 1..4 {
+                // randomizing rotation angle
+                let randomized_rotation_angle = rng.gen_range(-1.0..1.0);
+
+                // randomizing movement speed
+                let speed = Vec2::new(rng.gen_range(-2.5..2.5), rng.gen_range(-2.5..2.5));
+
+                // randomizing rotation speed
+                let rotation_speed =
+                    rng.gen_range(-0.05..0.05);
+
+                spawn_meteor(
+                    &mut commands,
+                    &mut game_sprites,
+                    collision.size.clone(),
+                    METEOR_MED_SIZE,
+                    collision.translation,
+                    Vec2::new(collision.translation.x, collision.translation.y),
+                    randomized_rotation_angle,
+                    rotation_speed,
+                    speed,
+                    Vec2::new(center.x, center.y)
+                );
+            }
+        }
+
+        // despawn MeteorCollisionComponent entity
+        commands.entity(entity).despawn();
+    }
+}
+
+fn spawn_meteor(
+    commands: &mut Commands,
+    game_sprites: &mut Res<GameSprites>,
+    size: i32,
+    hitbox_size: Vec2,
+    spawn_position: Vec3,
+    position: Vec2,
+    rotation: f32,
+    rotation_speed: f32,
+    velocity: Vec2,
+    bounds_offset: Vec2
+) {
+    let name = match size {
+        3 => "Big Meteor",
+        2 => "Med Meteor",
+        1 => "Sml Meteor",
+        _ => "Big Meteor"
+    };
+    let sprite = match size {
+        3 => game_sprites.meteor_big.clone(),
+        2 => game_sprites.meteor_med.clone(),
+        1 => game_sprites.meteor_sml.clone(),
+        _ => game_sprites.meteor_big.clone()
+    };
+
+    let _ = &commands
+    .spawn(SpriteBundle {
+        texture: sprite,
+        transform: Transform {
+            translation: spawn_position,
+            rotation: Quat::from_rotation_z(rotation),
+            scale: Vec3::new(1.0, 1.0 ,1.0),
+            ..Default::default()
+        },
+        ..Default::default()
+    })
+    .insert(Name::new(name))
+    .insert(MeteorComponent {
+        size: size,
+        rotation_speed: rotation_speed,
+    })
+    .insert(HitBoxSize(hitbox_size))
+    .insert(Velocity(Vec2::from(velocity)))
+    .insert(Position(Vec2::new(
+        position.x,
+        position.y,
+    )))
+    .insert(RotationAngle(rotation))
+    .insert(BoundsDespawnable(bounds_offset));
 }

@@ -7,12 +7,12 @@ use crate::{
         movement_system, update_transform_system, update_rotation_system,
         despawn_if_reached_bounds_system, warp_if_reached_window_bounds_system
     }, 
-    collision::player_collide_powerup_system,
+    collision::{player_collide_powerup_system, player_projectile_hit_asteroid_system},
     powerup::{
         spawn_powerup_system
     },
     meteor::{
-        spawn_meteor_system
+        spawn_meteor_system, meteor_collision_spawn_system
     }
 };
 
@@ -40,7 +40,9 @@ impl Plugin for InGameStatePlugin {
         .add_system(warp_if_reached_window_bounds_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(update_transform_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(update_rotation_system.in_set(OnUpdate(GameStates::InGame)))
+        .add_system(meteor_collision_spawn_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(player_collide_powerup_system.in_set(OnUpdate(GameStates::InGame)))
+        .add_system(player_projectile_hit_asteroid_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(spawn_powerup_system.run_if(on_timer(Duration::from_secs_f32(POWERUP_SPAWN_TIME))))
         .add_system(spawn_meteor_system.run_if(on_timer(Duration::from_secs_f32(METEOR_SPAWN_TIME))));
     }

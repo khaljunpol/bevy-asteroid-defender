@@ -21,3 +21,9 @@ pub struct BoundsDespawnable(pub Vec2);
 
 #[derive(Component)]
 pub struct BoundsWarpable();
+
+#[derive(Component)]
+pub struct MeteorCollisionComponent {
+    pub size: i32,
+    pub translation: Vec3
+}
