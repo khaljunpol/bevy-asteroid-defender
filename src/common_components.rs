@@ -17,7 +17,7 @@ pub struct RotationAngle(pub f32);
 pub struct StatsComponent(pub Stats);
 
 #[derive(Component)]
-pub struct BoundsDespawnable();
+pub struct BoundsDespawnable(pub Vec2);
 
 #[derive(Component)]
 pub struct BoundsWarpable();

@@ -47,7 +47,7 @@ pub fn warp_if_reached_window_bounds_system(
 
 pub fn despawn_if_reached_bounds_system(
     mut commands: Commands,
-    mut despawnable_query: Query<(Entity, &Velocity, &mut Position, With<BoundsDespawnable>)>,
+    mut despawnable_query: Query<(Entity, &Velocity, &mut Position, &BoundsDespawnable)>,
     border_size: Res<WindowDespawnBorder>
 ) {
 
@@ -56,15 +56,15 @@ pub fn despawn_if_reached_bounds_system(
 
         let mut shouldDespawn = false;
 
-        if new_position.x > border_size.right {        
+        if new_position.x > border_size.right + despawnable.0.x {        
             shouldDespawn = true;
-        } else if new_position.x < border_size.left {
+        } else if new_position.x < border_size.left - despawnable.0.x {
             shouldDespawn = true;
         }
 
-        if new_position.y > border_size.top {
+        if new_position.y > border_size.top + despawnable.0.y {
             shouldDespawn = true;
-        } else if new_position.y < border_size.bottom {
+        } else if new_position.y < border_size.bottom - despawnable.0.y {
             shouldDespawn = true;
         }
         

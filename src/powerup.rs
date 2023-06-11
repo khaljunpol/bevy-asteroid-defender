@@ -147,6 +147,6 @@ pub fn spawn_powerup_system(
             .insert(Velocity(Vec2::from(speed)))
             .insert(Position(Vec2::new(position.x, position.y)))
             .insert(RotationAngle(rotation))
-            .insert(BoundsDespawnable());
+            .insert(BoundsDespawnable(Vec2::new(10.0, 10.0)));
     }
 }

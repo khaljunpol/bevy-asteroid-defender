@@ -84,7 +84,7 @@ fn projectile_shoot_system(
                             player.direction(rotation_angle.0).normalize() * PROJECTILE_SPEED,
                         ))
                         .insert(Position(position.0.clone()))
-                        .insert(BoundsDespawnable());
+                        .insert(BoundsDespawnable(Vec2::new(10.0, 10.0)));
 
                         has_fired = true;
                 }

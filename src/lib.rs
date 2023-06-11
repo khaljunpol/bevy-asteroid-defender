@@ -25,7 +25,7 @@ pub const SPRITE_SCALE: f32 = 0.5;
 pub const POWERUP_SPAWN_TIME: f32 = 5.0;
 pub const POWERUP_MAX_COUNT: i32 = 3;
 
-pub const METEOR_SPAWN_TIME: f32 = 2.0;
+pub const METEOR_SPAWN_TIME: f32 = 3.0;
 pub const METEOR_MAX_COUNT: i32 = 10;
 
 pub const PROJECTILE_DESPAWN_TIME: f32 = 3.0;

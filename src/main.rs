@@ -30,6 +30,7 @@ mod meteor;
 mod common_components;
 mod common_systems;
 mod collision;
+mod utils;
 
 mod resources;
 mod states;
