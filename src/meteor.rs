@@ -5,7 +5,7 @@ use rand::{
 
 use lib::{METEOR_BIG_SIZE, METEOR_MAX_COUNT, METEOR_MED_SIZE, METEOR_SML_SIZE};
 use crate::{
-    common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize, MeteorCollisionComponent},
+    common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize, MeteorCollisionComponent, BoundsDespawnableWithTimer},
     resources::{GameSprites, WindowSize}, 
     utils::{get_angle_to_target, calculate_max_spawn_distance}, 
     player::PlayerComponent
@@ -55,7 +55,6 @@ pub fn spawn_meteor_system(
     for _ in query.iter() {
         count += 1;
     }
-    let center = Vec2::new(wdw_size.w / 2.0, wdw_size.h / 2.0);
     
     let mut rng = thread_rng();
     let angle_offset_range = 0.0..359.0 as f32;
@@ -71,7 +70,7 @@ pub fn spawn_meteor_system(
         let angle_range = 0..spawn_angle_list.len();
         let angle_idx = rng.gen_range(angle_range.clone());
         let angle = spawn_angle_list[angle_idx];
-        let max_dist = calculate_max_spawn_distance(angle, Vec2 { x: wdw_size.w, y: wdw_size.h });
+        let max_dist = calculate_max_spawn_distance(Vec2 { x: wdw_size.w, y: wdw_size.h });
 
         let (x_pos_rand, y_pos_rand) = angle.to_radians().sin_cos();
     
@@ -92,13 +91,12 @@ pub fn spawn_meteor_system(
             &mut commands,
             &mut game_sprites,
             3,
-            METEOR_BIG_SIZE,
             powerup_position,
             position,
             rotation,
             rot_speed,
             rot_velocity,
-            Vec2::new(center.x, center.y)
+            Vec2::new(max_dist, max_dist)
         );
     }
 }
@@ -111,17 +109,18 @@ pub fn meteor_collision_spawn_system(
     query: Query<(Entity, &MeteorCollisionComponent)>,
 ) {
     let mut rng = thread_rng();
-    let center = Vec2::new(wdw_size.w / 2.0, wdw_size.h / 2.0);
 
     for (entity, collision) in query.iter() {
         if collision.size > 0 {
             // split the into smaller pieces
-            for _ in 1..4 {
+            for i in 1..4 {
                 // randomizing rotation angle
                 let randomized_rotation_angle = rng.gen_range(-1.0..1.0);
 
+                let speed = i as f32 * 0.75;
+
                 // randomizing movement speed
-                let speed = Vec2::new(rng.gen_range(-2.5..2.5), rng.gen_range(-2.5..2.5));
+                let speed = Vec2::new(rng.gen_range(-speed..speed), rng.gen_range(-speed..speed));
 
                 // randomizing rotation speed
                 let rotation_speed =
@@ -131,14 +130,13 @@ pub fn meteor_collision_spawn_system(
                     &mut commands,
                     &mut game_sprites,
                     collision.size.clone(),
-                    METEOR_MED_SIZE,
                     collision.translation,
                     Vec2::new(collision.translation.x, collision.translation.y),
                     randomized_rotation_angle,
                     rotation_speed,
                     speed,
-                    Vec2::new(center.x, center.y)
-                );
+                    Vec2::new(50.0, 50.0)
+                ); 
             }
         }
 
@@ -151,7 +149,6 @@ fn spawn_meteor(
     commands: &mut Commands,
     game_sprites: &mut Res<GameSprites>,
     size: i32,
-    hitbox_size: Vec2,
     spawn_position: Vec3,
     position: Vec2,
     rotation: f32,
@@ -170,6 +167,13 @@ fn spawn_meteor(
         2 => game_sprites.meteor_med.clone(),
         1 => game_sprites.meteor_sml.clone(),
         _ => game_sprites.meteor_big.clone()
+    };
+    
+    let hitbox_size = match size {
+        3 => METEOR_BIG_SIZE,
+        2 => METEOR_MED_SIZE,
+        1 => METEOR_SML_SIZE,
+        _ => METEOR_BIG_SIZE
     };
 
     let _ = &commands
@@ -195,5 +199,5 @@ fn spawn_meteor(
         position.y,
     )))
     .insert(RotationAngle(rotation))
-    .insert(BoundsDespawnable(bounds_offset));
+    .insert(BoundsDespawnableWithTimer::new(bounds_offset, 3.0, 1.0));
 }

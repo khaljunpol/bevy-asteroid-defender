@@ -5,7 +5,7 @@ use lib::{POWERUP_SPAWN_TIME, METEOR_SPAWN_TIME};
 use crate::{
     common_systems::{
         movement_system, update_transform_system, update_rotation_system,
-        despawn_if_reached_bounds_system, warp_if_reached_window_bounds_system
+        despawn_if_reached_bounds_system, warp_if_reached_window_bounds_system, despawn_if_reached_bounds_timer_system
     }, 
     collision::{player_collide_powerup_system, player_projectile_hit_asteroid_system},
     powerup::{
@@ -37,6 +37,7 @@ impl Plugin for InGameStatePlugin {
     fn build(&self, app: &mut App) {
         app.add_system(movement_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(despawn_if_reached_bounds_system.in_set(OnUpdate(GameStates::InGame)))
+        .add_system(despawn_if_reached_bounds_timer_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(warp_if_reached_window_bounds_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(update_transform_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(update_rotation_system.in_set(OnUpdate(GameStates::InGame)))

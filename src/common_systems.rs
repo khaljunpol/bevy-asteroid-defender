@@ -1,6 +1,6 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, reflect::erased_serde::__private::serde::__private::de};
 use crate::{
-    common_components::{Position, RotationAngle, Velocity, BoundsDespawnable, BoundsWarpable},
+    common_components::{Position, RotationAngle, Velocity, BoundsDespawnable, BoundsWarpable, BoundsDespawnableWithTimer},
     resources::{WindowSize, WindowDespawnBorder}
 };
 
@@ -54,23 +54,70 @@ pub fn despawn_if_reached_bounds_system(
     for(entity, velocity, mut position, despawnable) in despawnable_query.iter(){
         let mut new_position = position.0 + velocity.0;
 
-        let mut shouldDespawn = false;
+        let mut should_despawn = false;
 
         if new_position.x > border_size.right + despawnable.0.x {        
-            shouldDespawn = true;
+            should_despawn = true;
         } else if new_position.x < border_size.left - despawnable.0.x {
-            shouldDespawn = true;
+            should_despawn = true;
         }
 
         if new_position.y > border_size.top + despawnable.0.y {
-            shouldDespawn = true;
+            should_despawn = true;
         } else if new_position.y < border_size.bottom - despawnable.0.y {
-            shouldDespawn = true;
+            should_despawn = true;
         }
         
-        if shouldDespawn {
+        if should_despawn {
             commands.entity(entity).despawn();
             break;
+        }
+    }
+
+}
+
+
+pub fn despawn_if_reached_bounds_timer_system(
+    mut commands: Commands,
+    mut despawnable_query: Query<(Entity, &Velocity, &mut Position, &mut BoundsDespawnableWithTimer)>,
+    time: Res<Time>,
+    border_size: Res<WindowDespawnBorder>
+) {
+
+    for(entity, velocity, mut position, mut despawnable) in despawnable_query.iter_mut(){
+        despawnable.initial_spawn_timer.tick(time.delta());
+
+        if despawnable.initial_spawn_timer.finished(){
+                
+            let mut new_position = position.0 + velocity.0;
+
+            let mut should_despawn = false;
+
+            if new_position.x > border_size.right + despawnable.bounds.0.x {        
+                should_despawn = true;
+            } else if new_position.x < border_size.left - despawnable.bounds.0.x {
+                should_despawn = true;
+            }
+
+            if new_position.y > border_size.top + despawnable.bounds.0.y {
+                should_despawn = true;
+            } else if new_position.y < border_size.bottom - despawnable.bounds.0.y {
+                should_despawn = true;
+            }
+
+            if should_despawn && !despawnable.should_despawn {
+                despawnable.should_despawn = true;
+                despawnable.despawn_timer.reset();
+            }
+        }
+
+        if despawnable.should_despawn {
+            despawnable.despawn_timer.tick(time.delta());
+
+            if despawnable.despawn_timer.finished(){
+                commands.entity(entity).despawn();
+                break;
+            }
         }
     }
 

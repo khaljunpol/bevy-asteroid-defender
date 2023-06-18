@@ -20,6 +20,28 @@ pub struct StatsComponent(pub Stats);
 pub struct BoundsDespawnable(pub Vec2);
 
 #[derive(Component)]
+pub struct BoundsDespawnableWithTimer{
+    pub bounds: BoundsDespawnable,
+    pub initial_spawn_timer: Timer,
+    pub despawn_timer: Timer,
+    pub should_despawn: bool
+}
+
+impl BoundsDespawnableWithTimer {
+    pub fn new(bounds: Vec2, despawn_delay: f32, spawn_check_delay: f32) -> BoundsDespawnableWithTimer {
+        let timer = Timer::from_seconds(spawn_check_delay, TimerMode::Once);
+        let timer2 = Timer::from_seconds(despawn_delay, TimerMode::Once);
+
+        BoundsDespawnableWithTimer { 
+            bounds: BoundsDespawnable(bounds), 
+            despawn_timer: timer2, 
+            initial_spawn_timer: timer,
+            should_despawn: false
+        }
+    }
+}
+
+#[derive(Component)]
 pub struct BoundsWarpable();
 
 #[derive(Component)]
