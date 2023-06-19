@@ -5,7 +5,7 @@ use rand::{
 
 use lib::{METEOR_BIG_SIZE, METEOR_MAX_COUNT, METEOR_MED_SIZE, METEOR_SML_SIZE};
 use crate::{
-    common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize, MeteorCollisionComponent, BoundsDespawnableWithTimer},
+    common_components::{RotationAngle, Velocity, Position, HitBoxSize, MeteorCollisionComponent, BoundsDespawnableWithTimer},
     resources::{GameSprites, WindowSize}, 
     utils::{get_angle_to_target, calculate_max_spawn_distance}, 
     player::PlayerComponent
@@ -15,15 +15,6 @@ use crate::{
 pub struct MeteorComponent{
     pub size: i32,
     pub rotation_speed: f32
-}
-
-impl MeteorComponent{
-    pub fn new(rotation_speed: f32) -> MeteorComponent {
-        MeteorComponent {
-            size: 3,
-            rotation_speed
-        }
-    }
 }
 
 
@@ -49,7 +40,7 @@ pub fn spawn_meteor_system(
     player_query: Query<(&Position, With<PlayerComponent>)>,
 )
 {
-    let (player_position, player) = player_query.single();
+    let (player_position, _player) = player_query.single();
 
     let mut count = 0;
     for _ in query.iter() {
@@ -105,7 +96,6 @@ pub fn spawn_meteor_system(
 pub fn meteor_collision_spawn_system(
     mut commands: Commands,
     mut game_sprites: Res<GameSprites>,
-    wdw_size: Res<WindowSize>,
     query: Query<(Entity, &MeteorCollisionComponent)>,
 ) {
     let mut rng = thread_rng();

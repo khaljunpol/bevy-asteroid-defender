@@ -1,4 +1,6 @@
-use bevy::{math::Vec3Swizzles, prelude::*, sprite::collide_aabb::collide};
+use bevy::{prelude::*, 
+    sprite::collide_aabb::collide, 
+    math::Vec3Swizzles};
 use lib::ShipType;
 
 use std::collections::HashSet;
@@ -70,7 +72,7 @@ pub fn player_projectile_hit_asteroid_system(
     mut commands: Commands,
     projectile_query: Query<
         (Entity, &Transform, &HitBoxSize, &ProjectileDespawnComponent),
-        (With<ProjectileComponent>),
+        With<ProjectileComponent>,
     >,
     meteor_query: Query<(Entity, &Transform, &HitBoxSize, &MeteorComponent), With<MeteorComponent>>,
 ) {

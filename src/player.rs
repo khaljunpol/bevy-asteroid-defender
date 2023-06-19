@@ -1,12 +1,13 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, time::Duration};
 use bevy::prelude::*;
+use bevy_tweening::{EaseFunction, lens::TransformPositionLens, Tween, Animator};
 use lib::{
     PLAYER_ACCELERATION, PLAYER_DECELERATION, PLAYER_TURN_SPEED, 
     PLAYER_MAX_SPEED, PLAYER_SHOOT_COOLDOWN
 };
-use crate::common_components::{
+use crate::{common_components::{
     Velocity, RotationAngle
-};
+}};
 
 #[derive(Component)]
 pub struct PlayerComponent;
@@ -14,7 +15,6 @@ pub struct PlayerComponent;
 impl PlayerComponent {
     pub fn direction(&self, rotation_angle: f32) -> Vec2 {
         let (y, x) = (rotation_angle + PI / 2.0).sin_cos();
-
         Vec2::new(x, y)
     }
 }
@@ -58,5 +58,26 @@ fn player_movement_system(
         } else if !keyboard_input.pressed(KeyCode::Up) {
             velocity.0 *= 1.0 - PLAYER_DECELERATION;
         }
+    }
+}
+
+pub fn player_move_to_center(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &PlayerComponent)>
+){
+
+    if let Ok((entity, transform, _player)) = query.get_single_mut() {
+        
+        let tween: Tween<Transform> = Tween::new(
+            EaseFunction::ExponentialOut,
+            Duration::from_secs(2),
+            TransformPositionLens{
+                start: transform.translation.clone(),
+                end: Vec3::new(transform.translation.x.clone(), 1.0, transform.translation.z.clone())
+            }
+        );
+        commands.entity(entity).insert(Animator::<Transform>::new(tween));
+
+        print!("{}", "tesxt");
     }
 }

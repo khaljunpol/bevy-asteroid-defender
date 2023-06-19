@@ -1,4 +1,4 @@
-use bevy::{prelude::*, reflect::erased_serde::__private::serde::__private::de};
+use bevy::prelude::*;
 use crate::{
     common_components::{Position, RotationAngle, Velocity, BoundsDespawnable, BoundsWarpable, BoundsDespawnableWithTimer},
     resources::{WindowSize, WindowDespawnBorder}
@@ -8,7 +8,7 @@ pub fn movement_system(
     mut query: Query<(&Velocity, &mut Position)>
 ) {
     for (velocity, mut position) in query.iter_mut() {
-        let mut new_position = position.0 + velocity.0;
+        let new_position = position.0 + velocity.0;
 
         position.0 = new_position;
     }
@@ -24,7 +24,7 @@ pub fn warp_if_reached_window_bounds_system(
     let top = wdw_size.h / 2.0;
     let bottom = -top;
 
-    for (mut position, transform, warpable) in query.iter_mut() {
+    for (mut position, transform, _warpable) in query.iter_mut() {
         let mut new_position = position.0;
         let half_scale = transform.scale.max_element();
 
@@ -47,12 +47,12 @@ pub fn warp_if_reached_window_bounds_system(
 
 pub fn despawn_if_reached_bounds_system(
     mut commands: Commands,
-    mut despawnable_query: Query<(Entity, &Velocity, &mut Position, &BoundsDespawnable)>,
+    despawnable_query: Query<(Entity, &Velocity, &Position, &BoundsDespawnable)>,
     border_size: Res<WindowDespawnBorder>
 ) {
 
-    for(entity, velocity, mut position, despawnable) in despawnable_query.iter(){
-        let mut new_position = position.0 + velocity.0;
+    for(entity, velocity, position, despawnable) in despawnable_query.iter(){
+        let new_position = position.0 + velocity.0;
 
         let mut should_despawn = false;
 
@@ -79,17 +79,17 @@ pub fn despawn_if_reached_bounds_system(
 
 pub fn despawn_if_reached_bounds_timer_system(
     mut commands: Commands,
-    mut despawnable_query: Query<(Entity, &Velocity, &mut Position, &mut BoundsDespawnableWithTimer)>,
+    mut despawnable_query: Query<(Entity, &Velocity, &Position, &mut BoundsDespawnableWithTimer)>,
     time: Res<Time>,
     border_size: Res<WindowDespawnBorder>
 ) {
 
-    for(entity, velocity, mut position, mut despawnable) in despawnable_query.iter_mut(){
+    for(entity, velocity, position, mut despawnable) in despawnable_query.iter_mut(){
         despawnable.initial_spawn_timer.tick(time.delta());
 
         if despawnable.initial_spawn_timer.finished(){
                 
-            let mut new_position = position.0 + velocity.0;
+            let new_position = position.0 + velocity.0;
 
             let mut should_despawn = false;
 

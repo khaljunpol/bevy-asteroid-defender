@@ -117,7 +117,7 @@ pub fn spawn_powerup_system(
             rng.gen_range(-0.1..0.1) as f32;
 
         // randomizing movement speed
-        let mut x_speed = rng.gen_range(-1.5..1.5);
+        let x_speed = rng.gen_range(-1.5..1.5);
         let mut y_speed = 0.0;
 
         if position.y > center.y{
@@ -126,7 +126,7 @@ pub fn spawn_powerup_system(
             y_speed = rng.gen_range(1.0..1.5);
         }
 
-        let mut speed = Vec2::new(x_speed, y_speed);
+        let speed = Vec2::new(x_speed, y_speed);
     
         let powerup_position = Vec3::new(position.x, position.y, 1.0);
     

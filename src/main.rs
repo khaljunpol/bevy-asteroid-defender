@@ -1,14 +1,15 @@
 use bevy::{prelude::*, window::WindowResolution};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::window::PrimaryWindow;
+use bevy_tweening::TweeningPlugin;
 use lib::{ShipType, PLAYER_SIZE, BORDER_EXTRA_SPACE};
-use meteor::MeteorPlugin;
 
 use crate::{
     common_components::{Position, RotationAngle, Velocity, HitBoxSize, BoundsWarpable},
     resources::{WindowSize},
     powerup::PowerUpPlugin,
-    states::{InGameStatePlugin, GameStates},
+    meteor::MeteorPlugin,
+    states::{InGameStatePlugin, StartGameStatePlugin, GameStates},
     player::{PlayerComponent, PlayerPlugin},
     ship::{ShipPlugin, ShipComponent},
     resources::{
@@ -29,6 +30,7 @@ mod meteor;
 
 mod common_components;
 mod common_systems;
+mod background;
 mod collision;
 mod utils;
 
@@ -40,7 +42,9 @@ fn main() {
  .add_state::<GameStates>()
  .add_plugins(DefaultPlugins)
  .add_plugin(WorldInspectorPlugin::new())
+ .add_plugin(TweeningPlugin)
  .add_plugin(InGameStatePlugin)
+ .add_plugin(StartGameStatePlugin)
  .add_plugin(PlayerPlugin)
  .add_plugin(ShipPlugin)
  .add_plugin(PowerUpPlugin)
@@ -111,7 +115,7 @@ fn startup_system(
         .spawn(SpriteBundle {
             texture: player_sprite,
             transform: Transform {
-                translation: Vec3::new(center_x, center_y, 0.0),
+                translation: Vec3::new(0.0, -wdw_h, 0.0),
                 scale: Vec3::new(0.5, 0.5, 1.),
                 ..Default::default()
             },
