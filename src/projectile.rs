@@ -5,7 +5,7 @@ use crate::{
     resources::GameSprites, 
     player::{PlayerComponent, PlayerShootCooldownComponent}, 
     common_components::{RotationAngle, Position, HitBoxSize, Velocity, BoundsDespawnable}, 
-    ship::ShipComponent
+    ship::ShipComponent, states::GameStates
 };
 
 #[derive(Component)]
@@ -24,8 +24,7 @@ pub struct ProjectilePlugin;
 
 impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(projectile_despawn_system)
-        .add_system(projectile_shoot_system);
+        app.add_system(projectile_despawn_system);
     }
 }
 
@@ -43,7 +42,7 @@ fn projectile_despawn_system(
     }
 }
 
-fn projectile_shoot_system(
+pub fn projectile_shoot_system(
     mut commands: Commands,
     kb: Res<Input<KeyCode>>,
     game_sprites: Res<GameSprites>,

@@ -65,7 +65,6 @@ pub fn player_move_to_center(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &PlayerComponent)>
 ){
-
     if let Ok((entity, transform, _player)) = query.get_single_mut() {
         
         let tween: Tween<Transform> = Tween::new(
@@ -77,7 +76,5 @@ pub fn player_move_to_center(
             }
         );
         commands.entity(entity).insert(Animator::<Transform>::new(tween));
-
-        print!("{}", "tesxt");
     }
 }

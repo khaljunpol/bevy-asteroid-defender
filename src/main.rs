@@ -1,7 +1,8 @@
-use bevy::{prelude::*, window::WindowResolution};
+use bevy::{prelude::*, window::WindowResolution, core_pipeline::bloom::BloomSettings};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::window::PrimaryWindow;
 use bevy_tweening::TweeningPlugin;
+use bevy_hanabi::prelude::*;
 use lib::{ShipType, PLAYER_SIZE, BORDER_EXTRA_SPACE};
 
 use crate::{
@@ -40,9 +41,11 @@ mod states;
 fn main() {
  App::new()
  .add_state::<GameStates>()
+ .add_system(bevy::window::close_on_esc)
  .add_plugins(DefaultPlugins)
  .add_plugin(WorldInspectorPlugin::new())
  .add_plugin(TweeningPlugin)
+ .add_plugin(HanabiPlugin)
  .add_plugin(InGameStatePlugin)
  .add_plugin(StartGameStatePlugin)
  .add_plugin(PlayerPlugin)
@@ -67,9 +70,10 @@ fn startup_system(
     let (center_x, center_y) = (window.width() / 2.0, window.height() / 2.0);
 
     // spawn camera
-    commands.spawn(Camera2dBundle{
+    commands.spawn((Camera2dBundle{
         ..default()
-    });
+    }, 
+    BloomSettings::default()));
 
     // add WinSize resource
     let wdw_size = WindowSize { w: wdw_w, h: wdw_h };

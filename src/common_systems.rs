@@ -123,13 +123,17 @@ pub fn despawn_if_reached_bounds_timer_system(
 
 }
 
-pub  fn update_transform_system(mut query: Query<(&Position, &mut Transform)>) {
+pub  fn update_transform_system(
+    mut query: Query<(&Position, &mut Transform)>) {
+
     for (position, mut transform) in query.iter_mut() {
         transform.translation = Vec3::new(position.0.x, position.0.y, transform.translation.z);
     }
 }
 
-pub fn update_rotation_system(mut query: Query<(&RotationAngle, &mut Transform)>) {
+pub fn update_rotation_system(
+    mut query: Query<(&RotationAngle, &mut Transform)>) {
+
     for (rotation_angle, mut transform) in query.iter_mut() {
         transform.rotation = Quat::from_rotation_z(rotation_angle.0);
     }

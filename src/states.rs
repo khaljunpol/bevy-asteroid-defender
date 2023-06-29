@@ -14,7 +14,7 @@ use crate::{
     },
     meteor::{
         spawn_meteor_system, meteor_collision_spawn_system
-    }, player::{player_move_to_center, PlayerComponent}
+    }, player::{player_move_to_center, PlayerComponent}, projectile::projectile_shoot_system
 };
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -50,8 +50,7 @@ impl Plugin for StartGameStatePlugin {
     fn build(&self, app: &mut App) {
         app
         .add_system(player_move_to_center.in_schedule(OnEnter(GameStates::StartGame)))
-        .add_system(start_game.in_schedule(OnEnter(GameStates::StartGame))
-            .after(on_timer(Duration::from_secs_f32(3.0))));
+        .add_system(start_game.run_if(on_timer(Duration::from_secs_f32(1.5))));
     }
 }
 
@@ -60,15 +59,25 @@ pub struct InGameStatePlugin;
 impl Plugin for InGameStatePlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_system(movement_system.in_set(OnUpdate(GameStates::InGame)))
+        // player
+        .add_system(projectile_shoot_system.in_set(OnUpdate(GameStates::InGame)))
+
+        // warping
         .add_system(despawn_if_reached_bounds_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(despawn_if_reached_bounds_timer_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(warp_if_reached_window_bounds_system.in_set(OnUpdate(GameStates::InGame)))
+
+        // transform and rotation
+        .add_system(movement_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(update_transform_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(update_rotation_system.in_set(OnUpdate(GameStates::InGame)))
+
+        // collisions
         .add_system(meteor_collision_spawn_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(player_collide_powerup_system.in_set(OnUpdate(GameStates::InGame)))
         .add_system(player_projectile_hit_asteroid_system.in_set(OnUpdate(GameStates::InGame)))
+
+        // spawning
         .add_system(spawn_powerup_system.in_set(OnUpdate(GameStates::InGame))
             .run_if(on_timer(Duration::from_secs_f32(POWERUP_SPAWN_TIME))))
         .add_system(spawn_meteor_system.in_set(OnUpdate(GameStates::InGame))

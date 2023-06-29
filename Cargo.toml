@@ -28,3 +28,4 @@ bevy = { version = "0.10.1", features = ["dynamic_linking"] }
 bevy-inspector-egui = "0.18.3"
 rand = "0.8.5"
 bevy_tweening = "0.7"
+bevy_hanabi = "0.6"
