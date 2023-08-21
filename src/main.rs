@@ -20,7 +20,7 @@ use crate::{
         WindowDespawnBorder, METEOR_BIG_SPRITE, METEOR_MED_SPRITE, METEOR_SML_SPRITE
     },
     projectile::ProjectilePlugin,
-    player::PlayerShootCooldownComponent
+    player::PlayerShootCooldownComponent,
 };
 
 mod player;
@@ -34,6 +34,8 @@ mod common_systems;
 mod background;
 mod collision;
 mod utils;
+mod object_pool;
+mod effects;
 
 mod resources;
 mod states;
@@ -41,19 +43,18 @@ mod states;
 fn main() {
  App::new()
  .add_state::<GameStates>()
- .add_system(bevy::window::close_on_esc)
  .add_plugins(DefaultPlugins)
- .add_plugin(WorldInspectorPlugin::new())
- .add_plugin(TweeningPlugin)
- .add_plugin(HanabiPlugin)
- .add_plugin(InGameStatePlugin)
- .add_plugin(StartGameStatePlugin)
- .add_plugin(PlayerPlugin)
- .add_plugin(ShipPlugin)
- .add_plugin(PowerUpPlugin)
- .add_plugin(MeteorPlugin)
- .add_plugin(ProjectilePlugin)
- .add_startup_system(startup_system)
+ .add_plugins(WorldInspectorPlugin::new())
+ .add_plugins(TweeningPlugin)
+ .add_plugins(HanabiPlugin)
+ .add_plugins(InGameStatePlugin)
+ .add_plugins(StartGameStatePlugin)
+ .add_plugins(PlayerPlugin)
+ .add_plugins(ShipPlugin)
+ .add_plugins(PowerUpPlugin)
+ .add_plugins(MeteorPlugin)
+ .add_plugins(ProjectilePlugin)
+ .add_systems(PreStartup, startup_system)
  .run();
 }
 
