@@ -49,8 +49,7 @@ pub struct PowerUpPlugin;
 
 impl Plugin for PowerUpPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(powerup_rotation_system)
-        .add_system(powerup_change_sprite_system);
+        app.add_systems(Update, (powerup_rotation_system, powerup_change_sprite_system));
     }
 }
 

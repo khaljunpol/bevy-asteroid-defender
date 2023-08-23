@@ -2,13 +2,11 @@ use bevy::prelude::*;
 use lib::{
     Stats, ShipType, DEFAULT_STATS
 };
-use rand::{
-    prelude::*
-};
+use rand::prelude::*;
 
 use crate::
 {
-    player::PlayerComponent, 
+    player::player::PlayerComponent, 
     resources::GameSprites
 };
 
@@ -52,7 +50,7 @@ pub struct ShipPlugin;
 
 impl Plugin for ShipPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(randomize_type_system);
+        app.add_systems(Update, randomize_type_system);
     }
 }
 

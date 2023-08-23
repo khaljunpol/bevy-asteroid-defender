@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use bevy::{prelude::{*, IntoSystemConfigs}, time::common_conditions::on_timer};
-use bevy_inspector_egui::egui::Key;
 use bevy_tweening::Animator;
 use lib::{POWERUP_SPAWN_TIME, METEOR_SPAWN_TIME};
 use crate::{
@@ -9,13 +8,17 @@ use crate::{
         movement_system, update_transform_system, update_rotation_system,
         despawn_if_reached_bounds_system, warp_if_reached_window_bounds_system, despawn_if_reached_bounds_timer_system
     }, 
-    collision::{player_collide_powerup_system, player_projectile_hit_asteroid_system},
-    powerup::{
-        spawn_powerup_system
+    utils::collision::{player_collide_powerup_system, player_projectile_hit_asteroid_system},
+    objects::{
+        powerup::spawn_powerup_system,
+        meteor::{
+            spawn_meteor_system, meteor_collision_spawn_system
+        }
     },
-    meteor::{
-        spawn_meteor_system, meteor_collision_spawn_system
-    }, player::{player_move_to_center, PlayerComponent}, projectile::projectile_shoot_system
+    player::{
+        player::{player_move_to_center, PlayerComponent}, 
+        projectile::projectile_shoot_system
+    }
 };
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -45,7 +48,7 @@ pub enum GameResult {
     Lose
 }
 
-fn transition_to_in_game_state(
+fn transition_to_in_game_state_system(
     mut commands: Commands,
     app_state: Res<State<GameStates>>,
     mut next_state: ResMut<NextState<GameStates>>, 
@@ -66,7 +69,7 @@ impl Plugin for StartGameStatePlugin {
     fn build(&self, app: &mut App) {
         app
         .add_systems(OnEnter(GameStates::StartGame), player_move_to_center)
-        .add_systems(Update, transition_to_in_game_state
+        .add_systems(Update, transition_to_in_game_state_system
             .run_if(in_state(GameStates::StartGame).and_then(on_timer(Duration::from_secs_f32(1.5)))));
     }
 }

@@ -3,9 +3,11 @@ use lib::{PROJECTILE_DESPAWN_TIME, ShipType, PROJECTILE_SIZE, PROJECTILE_SPEED, 
 
 use crate::{
     resources::GameSprites, 
-    player::{PlayerComponent, PlayerShootCooldownComponent}, 
+    player::{
+        player::{PlayerComponent, PlayerShootCooldownComponent},
+        ship::ShipComponent
+    }, 
     common_components::{RotationAngle, Position, HitBoxSize, Velocity, BoundsDespawnable}, 
-    ship::ShipComponent, states::GameStates
 };
 
 #[derive(Component)]
@@ -24,7 +26,7 @@ pub struct ProjectilePlugin;
 
 impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(projectile_despawn_system);
+        app.add_systems(Update, projectile_despawn_system);
     }
 }
 

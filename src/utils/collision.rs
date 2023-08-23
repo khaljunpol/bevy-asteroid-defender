@@ -7,9 +7,16 @@ use std::collections::HashSet;
 
 use crate::{
     common_components::{HitBoxSize, MeteorCollisionComponent}, 
-    player::PlayerComponent, 
-    powerup::PowerUpComponent, resources::{GameSprites}, 
-    ship::ShipComponent, projectile::{ProjectileDespawnComponent, ProjectileComponent}, meteor::MeteorComponent
+    player::{
+        player::PlayerComponent,
+        ship::ShipComponent,
+        projectile::{ProjectileDespawnComponent, ProjectileComponent}
+    },
+    objects::{
+        powerup::PowerUpComponent,
+        meteor::MeteorComponent
+    },
+    resources::GameSprites
 };
 
 pub fn player_collide_powerup_system(
@@ -65,8 +72,6 @@ pub fn player_collide_powerup_system(
         }
     }
 }
-
-
 
 pub fn player_projectile_hit_asteroid_system(
     mut commands: Commands,

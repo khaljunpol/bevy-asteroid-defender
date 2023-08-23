@@ -32,7 +32,7 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(player_movement_system);
+        app.add_systems(Update, player_movement_system);
     }
 }
 

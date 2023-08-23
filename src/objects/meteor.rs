@@ -1,14 +1,14 @@
 use bevy::prelude::*;
-use rand::{
-    prelude::*
-};
+use rand::prelude::*;
 
 use lib::{METEOR_BIG_SIZE, METEOR_MAX_COUNT, METEOR_MED_SIZE, METEOR_SML_SIZE};
 use crate::{
     common_components::{RotationAngle, Velocity, Position, HitBoxSize, MeteorCollisionComponent, BoundsDespawnableWithTimer},
     resources::{GameSprites, WindowSize}, 
-    utils::{get_angle_to_target, calculate_max_spawn_distance}, 
-    player::PlayerComponent
+    utils::utils::{
+            get_angle_to_target, calculate_max_spawn_distance
+        }, 
+    player::player::PlayerComponent
 };
 
 #[derive(Component)]
@@ -22,7 +22,7 @@ pub struct MeteorPlugin;
 
 impl Plugin for MeteorPlugin{
     fn build(&self, app: &mut App) {
-        app.add_system(meteor_rotation_system);
+        app.add_systems(Update, meteor_rotation_system);
     }
 }
 

@@ -8,43 +8,49 @@ use lib::{ShipType, PLAYER_SIZE, BORDER_EXTRA_SPACE};
 use crate::{
     common_components::{Position, RotationAngle, Velocity, HitBoxSize, BoundsWarpable},
     resources::{WindowSize},
-    powerup::PowerUpPlugin,
-    meteor::MeteorPlugin,
-    states::{InGameStatePlugin, StartGameStatePlugin, GameStates},
-    player::{PlayerComponent, PlayerPlugin},
-    ship::{ShipPlugin, ShipComponent},
+    objects::{
+        powerup::PowerUpPlugin,
+        meteor::MeteorPlugin,
+    },
+    state::states::
+        {
+            InGameStatePlugin, StartGameStatePlugin, GameStates
+        },
+    player::{
+        player::{
+            PlayerComponent, PlayerPlugin, PlayerShootCooldownComponent,
+        },
+        projectile::ProjectilePlugin,
+        ship::{
+            ShipPlugin, ShipComponent
+        },
+    },
     resources::{
         GameSprites, SHIP_ATTACK_SPRITE,SHIP_NORMAL_SPRITE,SHIP_SHIELD_SPRITE,
         POWERUP_CHANGE_NORMAL_SPRITE, POWERUP_CHANGE_ATTACK_SPRITE, POWERUP_CHANGE_SHIELD_SPRITE,
         PROJECTILE_NORMAL_SPRITE, PROJECTILE_ATTACK_SPRITE, PROJECTILE_SHIELD_SPRITE,
         WindowDespawnBorder, METEOR_BIG_SPRITE, METEOR_MED_SPRITE, METEOR_SML_SPRITE
     },
-    projectile::ProjectilePlugin,
-    player::PlayerShootCooldownComponent,
 };
 
 mod player;
-mod ship;
-mod powerup;
-mod projectile;
-mod meteor;
+mod objects;
 
 mod common_components;
 mod common_systems;
 mod background;
-mod collision;
 mod utils;
-mod object_pool;
 mod effects;
 
 mod resources;
-mod states;
+mod state;
 
 fn main() {
  App::new()
  .add_state::<GameStates>()
  .add_plugins(DefaultPlugins)
  .add_plugins(WorldInspectorPlugin::new())
+ .add_plugins(bevy_screen_diags::ScreenDiagsTextPlugin)
  .add_plugins(TweeningPlugin)
  .add_plugins(HanabiPlugin)
  .add_plugins(InGameStatePlugin)

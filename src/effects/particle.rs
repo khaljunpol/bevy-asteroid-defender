@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_hanabi::prelude::*;
 
 #[derive(Component)]
 pub struct ParticleComponent;
