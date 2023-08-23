@@ -6,7 +6,7 @@ use lib::ShipType;
 use std::collections::HashSet;
 
 use crate::{
-    common_components::{HitBoxSize, MeteorCollisionComponent}, 
+    common::common_components::{HitBoxSize, MeteorCollisionComponent}, 
     player::{
         player::PlayerComponent,
         ship::ShipComponent,

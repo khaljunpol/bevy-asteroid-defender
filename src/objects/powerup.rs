@@ -5,7 +5,7 @@ use rand::{
 use lib::{PowerUpType, ShipType, POWERUP_MAX_COUNT, POWER_UP_SIZE};
 
 use crate::{
-    common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize},
+    common::common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize},
     resources::{GameSprites, WindowSize}
 };
 

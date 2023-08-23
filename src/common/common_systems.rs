@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::{
-    common_components::{Position, RotationAngle, Velocity, BoundsDespawnable, BoundsWarpable, BoundsDespawnableWithTimer},
+    common::common_components::{Position, RotationAngle, Velocity, BoundsDespawnable, BoundsWarpable, BoundsDespawnableWithTimer},
     resources::{WindowSize, WindowDespawnBorder}
 };
 

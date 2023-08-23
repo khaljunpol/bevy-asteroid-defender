@@ -3,7 +3,7 @@ use rand::prelude::*;
 
 use lib::{METEOR_BIG_SIZE, METEOR_MAX_COUNT, METEOR_MED_SIZE, METEOR_SML_SIZE};
 use crate::{
-    common_components::{RotationAngle, Velocity, Position, HitBoxSize, MeteorCollisionComponent, BoundsDespawnableWithTimer},
+    common::common_components::{RotationAngle, Velocity, Position, HitBoxSize, MeteorCollisionComponent, BoundsDespawnableWithTimer},
     resources::{GameSprites, WindowSize}, 
     utils::utils::{
             get_angle_to_target, calculate_max_spawn_distance
@@ -11,7 +11,8 @@ use crate::{
     player::player::PlayerComponent
 };
 
-#[derive(Component)]
+#[derive(Component, Default, Reflect)]
+#[reflect(Component)]
 pub struct MeteorComponent{
     pub size: i32,
     pub rotation_speed: f32

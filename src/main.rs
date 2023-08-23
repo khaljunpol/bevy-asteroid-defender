@@ -1,13 +1,13 @@
-use bevy::{prelude::*, window::WindowResolution, core_pipeline::bloom::BloomSettings};
+use bevy::{prelude::*, core_pipeline::bloom::BloomSettings};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::window::PrimaryWindow;
 use bevy_tweening::TweeningPlugin;
 use bevy_hanabi::prelude::*;
-use lib::{ShipType, PLAYER_SIZE, BORDER_EXTRA_SPACE};
+use lib::BORDER_EXTRA_SPACE;
+use player::player::player_spawn_system;
 
 use crate::{
-    common_components::{Position, RotationAngle, Velocity, HitBoxSize, BoundsWarpable},
-    resources::{WindowSize},
+    resources::WindowSize,
     objects::{
         powerup::PowerUpPlugin,
         meteor::MeteorPlugin,
@@ -17,13 +17,9 @@ use crate::{
             InGameStatePlugin, StartGameStatePlugin, GameStates
         },
     player::{
-        player::{
-            PlayerComponent, PlayerPlugin, PlayerShootCooldownComponent,
-        },
+        player::PlayerPlugin,
         projectile::ProjectilePlugin,
-        ship::{
-            ShipPlugin, ShipComponent
-        },
+        ship::ShipPlugin,
     },
     resources::{
         GameSprites, SHIP_ATTACK_SPRITE,SHIP_NORMAL_SPRITE,SHIP_SHIELD_SPRITE,
@@ -36,8 +32,7 @@ use crate::{
 mod player;
 mod objects;
 
-mod common_components;
-mod common_systems;
+mod common;
 mod background;
 mod utils;
 mod effects;
@@ -48,7 +43,16 @@ mod state;
 fn main() {
  App::new()
  .add_state::<GameStates>()
- .add_plugins(DefaultPlugins)
+ .add_plugins(DefaultPlugins
+    .set(WindowPlugin{
+        primary_window: Some(Window { 
+            title: "Asteroid Defender Rougelike".into(),
+            resolution: (1280.0, 720.0).into(),
+            resizable: false,
+            ..default()
+        }),
+        ..default()
+    }))
  .add_plugins(WorldInspectorPlugin::new())
  .add_plugins(bevy_screen_diags::ScreenDiagsTextPlugin)
  .add_plugins(TweeningPlugin)
@@ -61,6 +65,7 @@ fn main() {
  .add_plugins(MeteorPlugin)
  .add_plugins(ProjectilePlugin)
  .add_systems(PreStartup, startup_system)
+ .add_systems(Startup, player_spawn_system)
  .run();
 }
 
@@ -72,14 +77,14 @@ fn startup_system(
 {
     // get singleton window
     let window: &Window = window_query.get_single().unwrap();
-    WindowResolution::new(1280.0, 720.0);
     let (wdw_w, wdw_h) = (window.width(), window.height());
     let (center_x, center_y) = (window.width() / 2.0, window.height() / 2.0);
 
     // spawn camera
-    commands.spawn((Camera2dBundle{
+    commands.spawn((Camera2dBundle
+        {
         ..default()
-    }, 
+        }, 
     BloomSettings::default()));
 
     // add WinSize resource
@@ -111,34 +116,4 @@ fn startup_system(
         meteor_sml: asset_server.load(METEOR_SML_SPRITE),
     };
     commands.insert_resource(game_sprites);
-
-    // create new ship component
-    let new_ship_component = ShipComponent::new();
-
-    let player_sprite = match new_ship_component.ship_type {
-        ShipType::Attack => asset_server.load(SHIP_ATTACK_SPRITE),
-        ShipType::Normal => asset_server.load(SHIP_NORMAL_SPRITE),
-        ShipType::Shield => asset_server.load(SHIP_SHIELD_SPRITE),
-    };
-
-    // spawn player ship
-    commands
-        .spawn(SpriteBundle {
-            texture: player_sprite,
-            transform: Transform {
-                translation: Vec3::new(0.0, -wdw_h, 0.0),
-                scale: Vec3::new(0.5, 0.5, 1.),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(Name::new("Player"))
-        .insert(PlayerComponent)
-        .insert(new_ship_component)
-        .insert(PlayerShootCooldownComponent::default())
-        .insert(HitBoxSize(PLAYER_SIZE))
-        .insert(Velocity(Vec2::splat(0.0)))
-        .insert(Position(Vec2::splat(0.0)))
-        .insert(RotationAngle(0.0))
-        .insert(BoundsWarpable());
 }

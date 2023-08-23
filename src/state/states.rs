@@ -4,11 +4,11 @@ use bevy::{prelude::{*, IntoSystemConfigs}, time::common_conditions::on_timer};
 use bevy_tweening::Animator;
 use lib::{POWERUP_SPAWN_TIME, METEOR_SPAWN_TIME};
 use crate::{
-    common_systems::{
+    common::common_systems::{
         movement_system, update_transform_system, update_rotation_system,
         despawn_if_reached_bounds_system, warp_if_reached_window_bounds_system, despawn_if_reached_bounds_timer_system
     }, 
-    utils::collision::{player_collide_powerup_system, player_projectile_hit_asteroid_system},
+    common::collision::{player_collide_powerup_system, player_projectile_hit_asteroid_system},
     objects::{
         powerup::spawn_powerup_system,
         meteor::{
@@ -16,7 +16,7 @@ use crate::{
         }
     },
     player::{
-        player::{player_move_to_center, PlayerComponent}, 
+        player::{player_move_to_center_system, PlayerComponent}, 
         projectile::projectile_shoot_system
     }
 };
@@ -68,7 +68,7 @@ pub struct StartGameStatePlugin;
 impl Plugin for StartGameStatePlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_systems(OnEnter(GameStates::StartGame), player_move_to_center)
+        .add_systems(OnEnter(GameStates::StartGame), player_move_to_center_system)
         .add_systems(Update, transition_to_in_game_state_system
             .run_if(in_state(GameStates::StartGame).and_then(on_timer(Duration::from_secs_f32(1.5)))));
     }

@@ -3,11 +3,13 @@ use bevy::prelude::*;
 use bevy_tweening::{EaseFunction, lens::TransformPositionLens, Tween, Animator};
 use lib::{
     PLAYER_ACCELERATION, PLAYER_DECELERATION, PLAYER_TURN_SPEED, 
-    PLAYER_MAX_SPEED, PLAYER_SHOOT_COOLDOWN
+    PLAYER_MAX_SPEED, PLAYER_SHOOT_COOLDOWN, ShipType, PLAYER_SIZE
 };
-use crate::{common_components::{
-    Velocity, RotationAngle
-}};
+use crate::{common::common_components::{
+    Velocity, RotationAngle, HitBoxSize, Position, BoundsWarpable
+}, resources::{SHIP_NORMAL_SPRITE, SHIP_SHIELD_SPRITE, SHIP_ATTACK_SPRITE, WindowSize}};
+
+use super::ship::ShipComponent;
 
 #[derive(Component)]
 pub struct PlayerComponent;
@@ -61,7 +63,44 @@ fn player_movement_system(
     }
 }
 
-pub fn player_move_to_center(
+pub fn player_spawn_system(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    wdw_size: Res<WindowSize>
+)
+{
+    // create new ship component
+    let new_ship_component = ShipComponent::new();
+
+    let player_sprite = match new_ship_component.ship_type {
+        ShipType::Attack => asset_server.load(SHIP_ATTACK_SPRITE),
+        ShipType::Normal => asset_server.load(SHIP_NORMAL_SPRITE),
+        ShipType::Shield => asset_server.load(SHIP_SHIELD_SPRITE),
+    };
+
+    // spawn player ship
+    commands
+        .spawn(SpriteBundle {
+            texture: player_sprite,
+            transform: Transform {
+                translation: Vec3::new(0.0, -wdw_size.h, 0.0),
+                scale: Vec3::new(0.5, 0.5, 1.),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Name::new("Player"))
+        .insert(PlayerComponent)
+        .insert(new_ship_component)
+        .insert(PlayerShootCooldownComponent::default())
+        .insert(HitBoxSize(PLAYER_SIZE))
+        .insert(Velocity(Vec2::splat(0.0)))
+        .insert(Position(Vec2::splat(0.0)))
+        .insert(RotationAngle(0.0))
+        .insert(BoundsWarpable());
+}
+
+pub fn player_move_to_center_system(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &PlayerComponent)>
 ){

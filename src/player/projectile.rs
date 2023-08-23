@@ -7,7 +7,7 @@ use crate::{
         player::{PlayerComponent, PlayerShootCooldownComponent},
         ship::ShipComponent
     }, 
-    common_components::{RotationAngle, Position, HitBoxSize, Velocity, BoundsDespawnable}, 
+    common::common_components::{RotationAngle, Position, HitBoxSize, Velocity, BoundsDespawnable}, 
 };
 
 #[derive(Component)]
