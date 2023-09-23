@@ -3,10 +3,10 @@ use bevy::prelude::*;
 use bevy_tweening::{EaseFunction, lens::TransformPositionLens, Tween, Animator};
 use lib::{
     PLAYER_ACCELERATION, PLAYER_DECELERATION, PLAYER_TURN_SPEED, 
-    PLAYER_MAX_SPEED, PLAYER_SHOOT_COOLDOWN, ShipType, PLAYER_SIZE
+    PLAYER_MAX_SPEED, PLAYER_SHOOT_COOLDOWN, ShipType, PLAYER_SIZE, PLAYER_START_HP
 };
 use crate::{common::common_components::{
-    Velocity, RotationAngle, HitBoxSize, Position, BoundsWarpable
+    Velocity, RotationAngle, HitBoxSize, Position, BoundsWarpable, Life
 }, resources::{SHIP_NORMAL_SPRITE, SHIP_SHIELD_SPRITE, SHIP_ATTACK_SPRITE, WindowSize}};
 
 use super::ship::ShipComponent;
@@ -97,12 +97,34 @@ pub fn player_spawn_system(
         .insert(Velocity(Vec2::splat(0.0)))
         .insert(Position(Vec2::splat(0.0)))
         .insert(RotationAngle(0.0))
-        .insert(BoundsWarpable());
+        .insert(BoundsWarpable())
+        .insert(Life::new(PLAYER_START_HP))
+        ;
 }
 
 pub fn player_move_to_center_system(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Transform, &PlayerComponent)>
+    mut query: Query<(Entity, &mut Transform, &PlayerComponent)>,
+    wdw_size: Res<WindowSize>
+){
+    if let Ok((entity, transform, _player)) = query.get_single_mut() {
+        
+        let tween: Tween<Transform> = Tween::new(
+            EaseFunction::ExponentialOut,
+            Duration::from_secs(2),
+            TransformPositionLens{
+                start: Vec3::new(0.0, -wdw_size.h, 0.0),
+                end: Vec3::new(transform.translation.x.clone(), 1.0, transform.translation.z.clone())
+            }
+        );
+        commands.entity(entity).insert(Animator::<Transform>::new(tween));
+    }
+}
+
+pub fn player_move_out_of_screen_system(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &PlayerComponent)>,
+    wdw_size: Res<WindowSize>
 ){
     if let Ok((entity, transform, _player)) = query.get_single_mut() {
         
@@ -111,7 +133,7 @@ pub fn player_move_to_center_system(
             Duration::from_secs(2),
             TransformPositionLens{
                 start: transform.translation.clone(),
-                end: Vec3::new(transform.translation.x.clone(), 1.0, transform.translation.z.clone())
+                end: Vec3::new(transform.translation.x.clone(), wdw_size.h, transform.translation.z.clone())
             }
         );
         commands.entity(entity).insert(Animator::<Transform>::new(tween));

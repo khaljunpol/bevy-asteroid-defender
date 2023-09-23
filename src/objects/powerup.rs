@@ -5,7 +5,7 @@ use rand::{
 use lib::{PowerUpType, ShipType, POWERUP_MAX_COUNT, POWER_UP_SIZE};
 
 use crate::{
-    common::common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize},
+    common::common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize, CollisionDespawnableWithDamage},
     resources::{GameSprites, WindowSize}
 };
 
@@ -146,6 +146,7 @@ pub fn spawn_powerup_system(
             .insert(Velocity(Vec2::from(speed)))
             .insert(Position(Vec2::new(position.x, position.y)))
             .insert(RotationAngle(rotation))
-            .insert(BoundsDespawnable(Vec2::new(10.0, 10.0)));
+            .insert(BoundsDespawnable(Vec2::new(10.0, 10.0)))
+            .insert(CollisionDespawnableWithDamage::new(false, 0.0));
     }
 }

@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use lib::Stats;
 
 #[derive(Component)]
 pub struct HitBoxSize(pub Vec2);
@@ -14,7 +13,16 @@ pub struct Position(pub Vec2);
 pub struct RotationAngle(pub f32);
 
 #[derive(Component)]
-pub struct StatsComponent(pub Stats);
+pub struct Life {
+    pub max_life: f32,
+    pub current_life: f32
+}
+
+impl Life {
+    pub fn new(life: f32) -> Self {
+        Life { max_life: life, current_life: life }
+    }
+}
 
 #[derive(Component)]
 pub struct BoundsDespawnable(pub Vec2);
@@ -28,7 +36,7 @@ pub struct BoundsDespawnableWithTimer{
 }
 
 impl BoundsDespawnableWithTimer {
-    pub fn new(bounds: Vec2, despawn_delay: f32, spawn_check_delay: f32) -> BoundsDespawnableWithTimer {
+    pub fn new(bounds: Vec2, despawn_delay: f32, spawn_check_delay: f32) -> Self {
         let timer = Timer::from_seconds(spawn_check_delay, TimerMode::Once);
         let timer2 = Timer::from_seconds(despawn_delay, TimerMode::Once);
 
@@ -42,10 +50,35 @@ impl BoundsDespawnableWithTimer {
 }
 
 #[derive(Component)]
-pub struct BoundsWarpable();
+/**
+ * Will Despawn on Collision
+ */
+pub struct CollisionDespawnableWithDamage {
+    pub should_damage: bool,
+    pub damage: f32
+}
+
+impl CollisionDespawnableWithDamage {
+    pub fn new(should_damage: bool, damage: f32) -> Self {
+        CollisionDespawnableWithDamage { should_damage, damage }
+    }
+}
 
 #[derive(Component)]
-pub struct MeteorCollisionComponent {
+pub struct BoundsWarpable();
+
+
+#[derive(Component)]
+/**
+ * Spawned component when Meteor is collided
+ */
+pub struct MeteorCollision {
     pub size: i32,
     pub translation: Vec3
 }
+
+#[derive(Component)]
+/**
+ * Spawned component when Meteor is collided
+ */
+pub struct DamageCollision(pub f32);

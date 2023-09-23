@@ -26,7 +26,6 @@ impl ShipComponent {
 
     pub fn new_type(ship_type: ShipType) -> ShipComponent {
         let stats = Self::get_stats_from_type(ship_type);
-
         ShipComponent { ship_type, stats }
     }
 
@@ -38,7 +37,7 @@ impl ShipComponent {
 
     fn get_stats_from_type(_ship_type: ShipType) -> Stats {
         for (st, stats) in DEFAULT_STATS {
-            if matches!(st, _ship_type) {
+            if st == _ship_type {
                 return stats;
             }
         }

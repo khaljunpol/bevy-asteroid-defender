@@ -1,12 +1,13 @@
 use bevy::{prelude::*, 
     sprite::collide_aabb::collide, 
     math::Vec3Swizzles};
-use lib::ShipType;
+use lib::{ShipType, MeteorSizeType};
+use rand::{thread_rng, Rng};
 
 use std::collections::HashSet;
 
 use crate::{
-    common::common_components::{HitBoxSize, MeteorCollisionComponent}, 
+    common::common_components::{HitBoxSize, CollisionDespawnableWithDamage, DamageCollision}, 
     player::{
         player::PlayerComponent,
         ship::ShipComponent,
@@ -14,33 +15,27 @@ use crate::{
     },
     objects::{
         powerup::PowerUpComponent,
-        meteor::MeteorComponent
+        meteor::{MeteorComponent, spawn_meteor}
     },
-    resources::GameSprites
+    resources::GameSprites, state::states::{GameStates}
 };
 
+use super::common_components::{Life, MeteorCollision};
+
 pub fn player_collide_powerup_system(
-    mut commands: Commands,
     game_sprites: Res<GameSprites>,
     player_query: Query<(&Transform, &HitBoxSize), With<PlayerComponent>>,
-    powerup_query: Query<(Entity, &Transform, &HitBoxSize, &PowerUpComponent), With<PowerUpComponent>>,
+    powerup_query: Query<(&Transform, &HitBoxSize, &PowerUpComponent), With<PowerUpComponent>>,
     mut ship_type_query: Query<(&mut Handle<Image>, &mut ShipComponent), With<PlayerComponent>>,
 ){
-    let mut despawned_entities: HashSet<Entity> = HashSet::new();
-    
     // Iterate through player
     for (player_tf, player_hitbox) in player_query.iter() {
 
         let player_scale = player_tf.scale.xy();
 
         // Iterate trough asteroids
-        for (powerup_entity, powerup_tf, powerup_hitbox, powerup) in powerup_query.iter()
+        for (powerup_tf, powerup_hitbox, powerup) in powerup_query.iter()
         {
-            if despawned_entities.contains(&powerup_entity)
-            {
-                continue;
-            }
-
             let powerup_scale = powerup_tf.scale.xy();
 
             let collision = collide(
@@ -52,10 +47,6 @@ pub fn player_collide_powerup_system(
 
             // Check for collision
             if collision.is_some() {
-                // Remove the asteroid
-                commands.entity(powerup_entity).despawn();
-                despawned_entities.insert(powerup_entity);
-
                 for (mut texture_handle, mut ship_component) in ship_type_query.iter_mut() {
                     *ship_component = ShipComponent::new_type(powerup.get_ship_change_type());
 
@@ -73,7 +64,72 @@ pub fn player_collide_powerup_system(
     }
 }
 
-pub fn player_projectile_hit_asteroid_system(
+pub fn player_collide_despawnable_system(
+    mut commands: Commands,
+    mut player_query: Query<(&Transform, &HitBoxSize), With<PlayerComponent>>,
+    collision_query: Query<(Entity, &Transform, &HitBoxSize, &CollisionDespawnableWithDamage), With<CollisionDespawnableWithDamage>>,
+){
+    let mut despawned_entities: HashSet<Entity> = HashSet::new();
+    
+    // Iterate through player
+    for (player_tf, player_hitbox) in player_query.iter_mut() {
+
+        let player_scale = player_tf.scale.xy();
+
+         // Iterate trough asteroids
+         for (despawnable_entity, despawnable_transform, despawnable_size, despawnable) in collision_query.iter() {
+            if despawned_entities.contains(&despawnable_entity)
+            {
+                continue;
+            }
+
+            let asteroid_scale = despawnable_transform.scale.xy();
+
+            let collision = collide(
+                player_tf.translation,
+                player_hitbox.0 * player_scale,
+                despawnable_transform.translation,
+                despawnable_size.0 * asteroid_scale,
+            );
+
+            // Check for collision
+            if collision.is_some() {
+                // Remove the asteroid
+                commands.entity(despawnable_entity).despawn();
+                despawned_entities.insert(despawnable_entity);
+
+                // Spawn damage component to be queried into damage computation system
+                if despawnable.should_damage {
+                    commands
+                    .spawn(())
+                    .insert(DamageCollision(despawnable.damage))
+                    .insert(Name::new("Collision Damage"));
+                }
+            }
+        }
+    }
+}
+
+pub fn collision_damage_system(
+    mut commands: Commands,
+    mut player_query: Query<(&mut Life), With<PlayerComponent>>,
+    query: Query<(Entity, &DamageCollision)>,
+) {
+    // Iterate through player
+    for (mut player_life) in player_query.iter_mut() {
+        for (entity, damage_collision) in query.iter() {
+            // deduct damage value from damage component
+            player_life.current_life -= damage_collision.0;
+
+            println!("{:?}", player_life.current_life);
+
+            // despawn DamageCollisionDespawnable entity
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+pub fn player_projectile_hit_meteor_system(
     mut commands: Commands,
     projectile_query: Query<
         (Entity, &Transform, &HitBoxSize, &ProjectileDespawnComponent),
@@ -119,17 +175,70 @@ pub fn player_projectile_hit_asteroid_system(
                 commands.entity(proj_entity).despawn();
                 despawned_entities.insert(proj_entity);
 
+                let size = asteroid.size as i32;
+                
                 // Store position to spawn smaller asteroids
-                if asteroid.size > 0 {
+                if size > 0 {
                     commands
-                        .spawn(())
-                        .insert(MeteorCollisionComponent {
-                            size: asteroid.size - 1,
-                            translation: asteroid_tf.translation.clone(),
-                        })
-                        .insert(Name::new("Meteor Collision"));
+                    .spawn(())
+                    .insert(MeteorCollision {
+                        size: size - 1,
+                        translation: asteroid_tf.translation.clone(),
+                    })
+                    .insert(Name::new("Meteor Collision"));
                 }
+                
             }
         }
+    }
+}
+
+pub fn meteor_collision_spawn_system(
+    mut commands: Commands,
+    mut game_sprites: Res<GameSprites>,
+    query: Query<(Entity, &MeteorCollision)>,
+) {
+    let mut rng = thread_rng();
+
+    for (entity, collision) in query.iter() {
+        if collision.size > 0 {
+            // split the into smaller pieces
+            for i in 1..4 {
+                // randomizing rotation angle
+                let randomized_rotation_angle = rng.gen_range(-1.0..1.0);
+
+                let speed = i as f32 * 0.75;
+
+                // randomizing movement speed
+                let speed = Vec2::new(rng.gen_range(-speed..speed), rng.gen_range(-speed..speed));
+
+                // randomizing rotation speed
+                let rotation_speed =
+                    rng.gen_range(-0.05..0.05);
+
+                // convert i32 to eum
+                let new_spawn_size = match collision.size {
+                    1 => MeteorSizeType::Small,
+                    2 => MeteorSizeType::Medium,
+                    3 => MeteorSizeType::Large,
+                    _ => MeteorSizeType::Large
+                }; 
+
+                spawn_meteor(
+                    &mut commands,
+                    &mut game_sprites,
+                    new_spawn_size,
+                    collision.translation,
+                    Vec2::new(collision.translation.x, collision.translation.y),
+                    randomized_rotation_angle,
+                    rotation_speed,
+                    speed,
+                    Vec2::new(50.0, 50.0)
+                ); 
+            }
+        }
+
+        // despawn MeteorCollisionComponent entity
+        commands.entity(entity).despawn();
     }
 }

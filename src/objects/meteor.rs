@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use rand::prelude::*;
 
-use lib::{METEOR_BIG_SIZE, METEOR_MAX_COUNT, METEOR_MED_SIZE, METEOR_SML_SIZE};
+use lib::{METEOR_MAX_COUNT, MeteorSizeType, METEOR_DMG, METEOR_SIZE};
 use crate::{
-    common::common_components::{RotationAngle, Velocity, Position, HitBoxSize, MeteorCollisionComponent, BoundsDespawnableWithTimer},
+    common::common_components::{RotationAngle, Velocity, Position, HitBoxSize, CollisionDespawnableWithDamage, BoundsDespawnableWithTimer, MeteorCollision},
     resources::{GameSprites, WindowSize}, 
     utils::utils::{
             get_angle_to_target, calculate_max_spawn_distance
@@ -14,10 +14,9 @@ use crate::{
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 pub struct MeteorComponent{
-    pub size: i32,
+    pub size: MeteorSizeType,
     pub rotation_speed: f32
 }
-
 
 pub struct MeteorPlugin;
 
@@ -82,7 +81,7 @@ pub fn spawn_meteor_system(
         spawn_meteor(
             &mut commands,
             &mut game_sprites,
-            3,
+            MeteorSizeType::Large,
             powerup_position,
             position,
             rotation,
@@ -93,53 +92,10 @@ pub fn spawn_meteor_system(
     }
 }
 
-
-pub fn meteor_collision_spawn_system(
-    mut commands: Commands,
-    mut game_sprites: Res<GameSprites>,
-    query: Query<(Entity, &MeteorCollisionComponent)>,
-) {
-    let mut rng = thread_rng();
-
-    for (entity, collision) in query.iter() {
-        if collision.size > 0 {
-            // split the into smaller pieces
-            for i in 1..4 {
-                // randomizing rotation angle
-                let randomized_rotation_angle = rng.gen_range(-1.0..1.0);
-
-                let speed = i as f32 * 0.75;
-
-                // randomizing movement speed
-                let speed = Vec2::new(rng.gen_range(-speed..speed), rng.gen_range(-speed..speed));
-
-                // randomizing rotation speed
-                let rotation_speed =
-                    rng.gen_range(-0.05..0.05);
-
-                spawn_meteor(
-                    &mut commands,
-                    &mut game_sprites,
-                    collision.size.clone(),
-                    collision.translation,
-                    Vec2::new(collision.translation.x, collision.translation.y),
-                    randomized_rotation_angle,
-                    rotation_speed,
-                    speed,
-                    Vec2::new(50.0, 50.0)
-                ); 
-            }
-        }
-
-        // despawn MeteorCollisionComponent entity
-        commands.entity(entity).despawn();
-    }
-}
-
-fn spawn_meteor(
+pub fn spawn_meteor(
     commands: &mut Commands,
     game_sprites: &mut Res<GameSprites>,
-    size: i32,
+    size: MeteorSizeType,
     spawn_position: Vec3,
     position: Vec2,
     rotation: f32,
@@ -147,24 +103,11 @@ fn spawn_meteor(
     velocity: Vec2,
     bounds_offset: Vec2
 ) {
-    let name = match size {
-        3 => "Big Meteor",
-        2 => "Med Meteor",
-        1 => "Sml Meteor",
-        _ => "Big Meteor"
-    };
-    let sprite = match size {
-        3 => game_sprites.meteor_big.clone(),
-        2 => game_sprites.meteor_med.clone(),
-        1 => game_sprites.meteor_sml.clone(),
-        _ => game_sprites.meteor_big.clone()
-    };
-    
-    let hitbox_size = match size {
-        3 => METEOR_BIG_SIZE,
-        2 => METEOR_MED_SIZE,
-        1 => METEOR_SML_SIZE,
-        _ => METEOR_BIG_SIZE
+    let (name, sprite) = match size {
+        MeteorSizeType::Large => ("Big Meteor", game_sprites.meteor_big.clone()),
+        MeteorSizeType::Medium => ("Med Meteor", game_sprites.meteor_med.clone()),
+        MeteorSizeType::Small => ("Sml Meteor", game_sprites.meteor_sml.clone()),
+        _ => ("Big Meteor", game_sprites.meteor_big.clone()),
     };
 
     let _ = &commands
@@ -183,12 +126,31 @@ fn spawn_meteor(
         size: size,
         rotation_speed: rotation_speed,
     })
-    .insert(HitBoxSize(hitbox_size))
+    .insert(HitBoxSize(get_size_from_type(size)))
     .insert(Velocity(Vec2::from(velocity)))
     .insert(Position(Vec2::new(
         position.x,
         position.y,
     )))
     .insert(RotationAngle(rotation))
-    .insert(BoundsDespawnableWithTimer::new(bounds_offset, 3.0, 1.0));
+    .insert(BoundsDespawnableWithTimer::new(bounds_offset, 3.0, 1.0))
+    .insert(CollisionDespawnableWithDamage::new(true, get_damage_from_type(size)));
+}
+
+fn get_damage_from_type(_size_type: MeteorSizeType) -> f32 {
+    for (st, stats) in METEOR_DMG {
+        if st == _size_type {
+            return stats;
+        }
+    }
+    METEOR_DMG[0].1.clone()
+}
+
+fn get_size_from_type(_size_type: MeteorSizeType) -> Vec2 {
+    for (st, size) in METEOR_SIZE {
+        if st == _size_type {
+            return size;
+        }
+    }
+    METEOR_SIZE[0].1.clone()
 }

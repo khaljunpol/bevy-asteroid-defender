@@ -3,8 +3,10 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::window::PrimaryWindow;
 use bevy_tweening::TweeningPlugin;
 use bevy_hanabi::prelude::*;
+use events::events::EventsPlugin;
 use lib::BORDER_EXTRA_SPACE;
 use player::player::player_spawn_system;
+use state::states::{ProgressionStatePlugin, EndGameStatePlugin};
 
 use crate::{
     resources::WindowSize,
@@ -39,6 +41,7 @@ mod effects;
 
 mod resources;
 mod state;
+mod events;
 
 fn main() {
  App::new()
@@ -57,13 +60,16 @@ fn main() {
  .add_plugins(bevy_screen_diags::ScreenDiagsTextPlugin)
  .add_plugins(TweeningPlugin)
  .add_plugins(HanabiPlugin)
- .add_plugins(InGameStatePlugin)
  .add_plugins(StartGameStatePlugin)
+ .add_plugins(InGameStatePlugin)
+ .add_plugins(ProgressionStatePlugin)
+ .add_plugins(EndGameStatePlugin)
  .add_plugins(PlayerPlugin)
  .add_plugins(ShipPlugin)
  .add_plugins(PowerUpPlugin)
  .add_plugins(MeteorPlugin)
  .add_plugins(ProjectilePlugin)
+ .add_plugins(EventsPlugin)
  .add_systems(PreStartup, startup_system)
  .add_systems(Startup, player_spawn_system)
  .run();
