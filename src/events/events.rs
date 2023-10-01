@@ -1,6 +1,6 @@
 use bevy::{prelude::*, ecs::schedule::ScheduleLabel};
 
-use crate::{state::states::GameStates, player::player::PlayerComponent, common::common_components::Life};
+use crate::{state::states::GameStates, player::player::PlayerComponent, common::common_components::Life, utils::manager::game_end};
 
 #[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
 struct EventSchedule;
@@ -15,15 +15,7 @@ pub struct FlushEvents;
 pub struct PlayerDeadEvent;
 
 #[derive(Event)]
-pub struct ChangeStateEvent{
-    previous: GameStates,
-    next: GameStates
-}
-impl ChangeStateEvent {
-    pub fn new(current: GameStates, next: GameStates) -> ChangeStateEvent {
-        ChangeStateEvent { previous: current, next }
-    }
-}
+pub struct PlayerSpawnEvent;
 
 #[derive(Event)]
 pub struct StateStartEvent(pub GameStates);
@@ -34,62 +26,80 @@ pub struct EventsPlugin;
 impl Plugin for EventsPlugin {
     
     fn build(&self, app: &mut App) {
-        // Create a schedule to store our systems
-        let mut schedule = Schedule::default();
-        schedule.add_systems(Events::<StateStartEvent>::update_system.in_set(FlushEvents))
-            .add_systems(Events::<StateEndEvent>::update_system.in_set(FlushEvents))
-            .add_systems(Events::<ChangeStateEvent>::update_system.in_set(FlushEvents))
-            .add_systems(Events::<PlayerDeadEvent>::update_system.in_set(FlushEvents));
-
         app
-        .insert_resource(Events::<StateStartEvent>::default())
-        .insert_resource(Events::<StateEndEvent>::default())
-        .insert_resource(Events::<ChangeStateEvent>::default())
-        .insert_resource(Events::<PlayerDeadEvent>::default())
-
-        .add_schedule(EventSchedule, schedule)
+        .init_resource::<Events<StateStartEvent>>()
+        .init_resource::<Events<StateEndEvent>>()
+        .init_resource::<Events<PlayerDeadEvent>>()
+        .init_resource::<Events<PlayerSpawnEvent>>()
 
         .add_systems(Update, (
-            trigger_player_dead_event.after(FlushEvents),
-            trigger_state_start_event.after(FlushEvents),
-            trigger_next_state_event.after(FlushEvents),
-            trigger_next_state_event.after(FlushEvents),
+                //Handle events after the event is called
+                (handle_player_dead_event, game_end).chain()
+                    .run_if(on_event::<PlayerDeadEvent>())
+                    .before(event_cleanup::<PlayerDeadEvent>),
+
+                handle_state_start_event.run_if(on_event::<StateStartEvent>())
+                    .before(event_cleanup::<StateStartEvent>),
+                handle_state_end_event.run_if(on_event::<StateEndEvent>())
+                    .before(event_cleanup::<StateEndEvent>)
         ));
     }
 }
 
-fn trigger_player_dead_event(
+/// Custom cleanup strategy for events
+/// Generic to allow using for any custom event type
+pub fn event_cleanup<T: Event>(
+    mut events: ResMut<Events<T>>,
+) {
+    // clean up events
+    events.clear();
+}
+
+pub fn check_player_dead_event(
     mut player_query: Query<(&Life), With<PlayerComponent>>,
     mut ev_played_dead: EventWriter<PlayerDeadEvent>,
 ) {
-    for (player_life) in player_query.iter_mut() {
+    for player_life in player_query.iter_mut() {
         if player_life.current_life <= 0.0 {
             ev_played_dead.send(PlayerDeadEvent);
         }
     }
 }
 
-pub fn trigger_state_start_event(
+pub fn send_state_start_event(
     app_state: Res<State<GameStates>>,
     mut ev_start_state: EventWriter<StateStartEvent>){
+        info!("Sending start state event!");
     ev_start_state.send(StateStartEvent(*app_state.get()));
 }
 
-pub fn trigger_state_end_event(
+pub fn send_state_end_event(
     app_state: Res<State<GameStates>>,
     mut ev_start_state: EventWriter<StateEndEvent>){
+        info!("Sending end state event!");
     ev_start_state.send(StateEndEvent(*app_state.get()));
 }
 
-pub fn trigger_next_state_event(
-    app_state: Res<State<GameStates>>,
-    mut next_state: ResMut<NextState<GameStates>>, 
-    mut ev_change_state: EventWriter<ChangeStateEvent>,
+fn handle_player_dead_event(
+    next_state: ResMut<NextState<GameStates>> 
 ){
-    println!("{:?}", app_state.get());
-    // next_state.set(app_state.get().next());
-    ev_change_state.send(ChangeStateEvent::new(*app_state.get(), app_state.get().next()));
+    // Handle dead event here
 }
 
+fn handle_state_start_event(
+    mut event_reader: EventReader<StateStartEvent>
+){
+    for event in event_reader.iter() {
+        info!("Trigger start event! {:?}", event.0);
+        break
+    }
+}
 
-// fn state_change_event
+fn handle_state_end_event(
+    mut event_reader: EventReader<StateEndEvent>
+){
+    for event in event_reader.iter() {
+        info!("Trigger end event! {:?}", event.0);
+        break
+    }
+}

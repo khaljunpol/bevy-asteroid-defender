@@ -1,12 +1,14 @@
-use bevy::prelude::*;
+use std::time::Duration;
+
+use bevy::{prelude::*, time::common_conditions::on_timer};
 use rand::{
     prelude::*
 };
-use lib::{PowerUpType, ShipType, POWERUP_MAX_COUNT, POWER_UP_SIZE};
+use lib::{PowerUpType, ShipType, POWERUP_MAX_COUNT, POWER_UP_SIZE, POWERUP_SPAWN_TIME};
 
 use crate::{
     common::common_components::{RotationAngle, Velocity, Position, BoundsDespawnable, HitBoxSize, CollisionDespawnableWithDamage},
-    resources::{GameSprites, WindowSize}
+    resources::{GameSprites, WindowSize}, state::states::GameStates, utils::cleanup::{CleanUpEndGame}
 };
 
 #[derive(Component)]
@@ -49,7 +51,12 @@ pub struct PowerUpPlugin;
 
 impl Plugin for PowerUpPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (powerup_rotation_system, powerup_change_sprite_system));
+        app
+            .add_systems(Update, (powerup_rotation_system, powerup_change_sprite_system))
+            // spawn
+            .add_systems(Update, spawn_powerup_system
+                .run_if(in_state(GameStates::InGame)
+                .and_then(on_timer(Duration::from_secs_f32(POWERUP_SPAWN_TIME)))));
     }
 }
 
@@ -84,7 +91,7 @@ fn powerup_change_sprite_system(
     }
 }
 
-pub fn spawn_powerup_system(
+fn spawn_powerup_system(
     mut commands: Commands,
     game_sprites: Res<GameSprites>,
     wdw_size: Res<WindowSize>,
@@ -147,6 +154,8 @@ pub fn spawn_powerup_system(
             .insert(Position(Vec2::new(position.x, position.y)))
             .insert(RotationAngle(rotation))
             .insert(BoundsDespawnable(Vec2::new(10.0, 10.0)))
-            .insert(CollisionDespawnableWithDamage::new(false, 0.0));
+            .insert(CollisionDespawnableWithDamage::new(false, 0.0))
+            .insert(CleanUpEndGame::new(true))
+            ;
     }
 }

@@ -7,7 +7,7 @@ use crate::{
         player::{PlayerComponent, PlayerShootCooldownComponent},
         ship::ShipComponent
     }, 
-    common::common_components::{RotationAngle, Position, HitBoxSize, Velocity, BoundsDespawnable}, 
+    common::common_components::{RotationAngle, Position, HitBoxSize, Velocity, BoundsDespawnable}, utils::cleanup::CleanUpEndGame, 
 };
 
 #[derive(Component)]
@@ -85,7 +85,8 @@ pub fn projectile_shoot_system(
                             player.direction(rotation_angle.0).normalize() * PROJECTILE_SPEED,
                         ))
                         .insert(Position(position.0.clone()))
-                        .insert(BoundsDespawnable(Vec2::new(10.0, 10.0)));
+                        .insert(BoundsDespawnable(Vec2::new(10.0, 10.0)))
+                        .insert(CleanUpEndGame::new(true));
 
                         has_fired = true;
                 }

@@ -11,18 +11,32 @@ use crate::{
     player::{
         player::PlayerComponent,
         ship::ShipComponent,
-        projectile::{ProjectileDespawnComponent, ProjectileComponent}
     },
     objects::{
         powerup::PowerUpComponent,
-        meteor::{MeteorComponent, spawn_meteor}
+        meteor::{MeteorComponent, spawn_meteor}, projectile::{ProjectileDespawnComponent, ProjectileComponent}
     },
-    resources::GameSprites, state::states::{GameStates}
+    resources::GameSprites, state::states::{GameStates}, events::events::PlayerDeadEvent
 };
 
 use super::common_components::{Life, MeteorCollision};
 
-pub fn player_collide_powerup_system(
+pub struct CollisionPlugin;
+impl Plugin for CollisionPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_systems(Update, (meteor_collision_spawn_system, 
+                collision_damage_system,
+                player_collide_powerup_system,
+                player_projectile_hit_meteor_system,
+                player_collide_despawnable_system)
+                .run_if(in_state(GameStates::InGame)));
+    }
+
+}
+
+
+fn player_collide_powerup_system(
     game_sprites: Res<GameSprites>,
     player_query: Query<(&Transform, &HitBoxSize), With<PlayerComponent>>,
     powerup_query: Query<(&Transform, &HitBoxSize, &PowerUpComponent), With<PowerUpComponent>>,
@@ -64,7 +78,7 @@ pub fn player_collide_powerup_system(
     }
 }
 
-pub fn player_collide_despawnable_system(
+fn player_collide_despawnable_system(
     mut commands: Commands,
     mut player_query: Query<(&Transform, &HitBoxSize), With<PlayerComponent>>,
     collision_query: Query<(Entity, &Transform, &HitBoxSize, &CollisionDespawnableWithDamage), With<CollisionDespawnableWithDamage>>,
@@ -110,14 +124,15 @@ pub fn player_collide_despawnable_system(
     }
 }
 
-pub fn collision_damage_system(
+fn collision_damage_system(
     mut commands: Commands,
-    mut player_query: Query<(&mut Life), With<PlayerComponent>>,
-    query: Query<(Entity, &DamageCollision)>,
+    mut player_query: Query<&mut Life, With<PlayerComponent>>,
+    damage_query: Query<(Entity, &DamageCollision)>,
+    mut ev_played_dead: EventWriter<PlayerDeadEvent>,
 ) {
     // Iterate through player
-    for (mut player_life) in player_query.iter_mut() {
-        for (entity, damage_collision) in query.iter() {
+    for mut player_life in player_query.iter_mut() {
+        for (entity, damage_collision) in damage_query.iter() {
             // deduct damage value from damage component
             player_life.current_life -= damage_collision.0;
 
@@ -125,11 +140,17 @@ pub fn collision_damage_system(
 
             // despawn DamageCollisionDespawnable entity
             commands.entity(entity).despawn();
+
+            if player_life.current_life <= 0.0 {
+                player_life.current_life = 0.0;
+                ev_played_dead.send(PlayerDeadEvent);
+                break;
+            }
         }
     }
 }
 
-pub fn player_projectile_hit_meteor_system(
+fn player_projectile_hit_meteor_system(
     mut commands: Commands,
     projectile_query: Query<
         (Entity, &Transform, &HitBoxSize, &ProjectileDespawnComponent),
@@ -193,7 +214,7 @@ pub fn player_projectile_hit_meteor_system(
     }
 }
 
-pub fn meteor_collision_spawn_system(
+fn meteor_collision_spawn_system(
     mut commands: Commands,
     mut game_sprites: Res<GameSprites>,
     query: Query<(Entity, &MeteorCollision)>,

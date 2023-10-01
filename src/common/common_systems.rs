@@ -4,16 +4,6 @@ use crate::{
     resources::{WindowSize, WindowDespawnBorder}
 };
 
-pub fn movement_system(
-    mut query: Query<(&Velocity, &mut Position)>
-) {
-    for (velocity, mut position) in query.iter_mut() {
-        let new_position = position.0 + velocity.0;
-
-        position.0 = new_position;
-    }
-}
-
 pub fn warp_if_reached_window_bounds_system(
     mut query: Query<(&mut Position, &Transform, With<BoundsWarpable>)>,
     wdw_size: Res<WindowSize>
@@ -121,6 +111,16 @@ pub fn despawn_if_reached_bounds_timer_system(
         }
     }
 
+}
+
+pub fn movement_system(
+    mut query: Query<(&Velocity, &mut Position)>
+) {
+    for (velocity, mut position) in query.iter_mut() {
+        let new_position = position.0 + velocity.0;
+
+        position.0 = new_position;
+    }
 }
 
 pub  fn update_transform_system(

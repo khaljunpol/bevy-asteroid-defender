@@ -1,13 +1,13 @@
 use std::{f32::consts::PI, time::Duration};
 use bevy::prelude::*;
-use bevy_tweening::{EaseFunction, lens::TransformPositionLens, Tween, Animator};
+use bevy_tweening::{EaseFunction, lens::{TransformPositionLens, TransformRotationLens}, Tween, Animator, Tracks};
 use lib::{
     PLAYER_ACCELERATION, PLAYER_DECELERATION, PLAYER_TURN_SPEED, 
     PLAYER_MAX_SPEED, PLAYER_SHOOT_COOLDOWN, ShipType, PLAYER_SIZE, PLAYER_START_HP
 };
 use crate::{common::common_components::{
     Velocity, RotationAngle, HitBoxSize, Position, BoundsWarpable, Life
-}, resources::{SHIP_NORMAL_SPRITE, SHIP_SHIELD_SPRITE, SHIP_ATTACK_SPRITE, WindowSize}};
+}, resources::{SHIP_NORMAL_SPRITE, SHIP_SHIELD_SPRITE, SHIP_ATTACK_SPRITE, WindowSize}, utils::cleanup::{CleanUpEndGame}, events::events::{PlayerSpawnEvent, event_cleanup, PlayerDeadEvent, check_player_dead_event}, objects::projectile::projectile_shoot_system, state::states::GameStates};
 
 use super::ship::ShipComponent;
 
@@ -34,7 +34,18 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, player_movement_system);
+        app
+            // Start Game Systems
+            .add_systems(OnEnter(GameStates::StartGame), player_spawn_system)
+            // In Game Systems
+            .add_systems(Update, player_movement_system.run_if(in_state(GameStates::InGame)))
+            .add_systems(Update, projectile_shoot_system.run_if(in_state(GameStates::InGame)))
+            .add_systems(Update, check_player_dead_event.run_if(in_state(GameStates::InGame)))
+            .add_systems(Update, player_died_system.run_if(in_state(GameStates::InGame))
+                .run_if(on_event::<PlayerDeadEvent>())
+            )
+            // End Game Systems
+            .add_systems(OnEnter(GameStates::EndGame), player_move_out_of_screen_system);
     }
 }
 
@@ -63,12 +74,27 @@ fn player_movement_system(
     }
 }
 
+fn player_died_system(
+    mut commands: Commands,
+    mut query: Query<(Entity, &PlayerComponent)>
+){
+    if let Ok((entity, _player)) = query.get_single_mut() {
+        info!("remove components after death");
+        commands.entity(entity).remove::<Velocity>();
+        commands.entity(entity).remove::<RotationAngle>();
+        commands.entity(entity).remove::<Position>();
+    }
+}
+
 pub fn player_spawn_system(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    wdw_size: Res<WindowSize>
+    wdw_size: Res<WindowSize>,
+    mut ev_player_spawn: EventWriter<PlayerSpawnEvent>,
 )
 {
+    ev_player_spawn.send(PlayerSpawnEvent);
+
     // create new ship component
     let new_ship_component = ShipComponent::new();
 
@@ -78,12 +104,33 @@ pub fn player_spawn_system(
         ShipType::Shield => asset_server.load(SHIP_SHIELD_SPRITE),
     };
 
+    let start_pos = Vec3::new(0.0, -wdw_size.h, 0.0);
+
+    let tween: Tween<Transform> = Tween::new(
+        EaseFunction::ExponentialOut,
+        Duration::from_secs(2),
+        TransformPositionLens{
+                start: start_pos,
+                end: Vec3::new(0.0, 1.0, 0.0)
+            }
+    );
+    let rot_tween: Tween<Transform> = Tween::new(
+        EaseFunction::ElasticIn,
+        Duration::from_secs(2),
+        TransformRotationLens {
+            start: Quat::from_rotation_z(0.0),
+            end: Quat::from_rotation_z(0.0),
+        },
+    );
+    let tracks: Tracks<Transform> = Tracks::new([tween, rot_tween]);
+
+    info!("Spawn Player");
     // spawn player ship
     commands
         .spawn(SpriteBundle {
             texture: player_sprite,
             transform: Transform {
-                translation: Vec3::new(0.0, -wdw_size.h, 0.0),
+                translation: start_pos,
                 scale: Vec3::new(0.5, 0.5, 1.),
                 ..Default::default()
             },
@@ -99,26 +146,8 @@ pub fn player_spawn_system(
         .insert(RotationAngle(0.0))
         .insert(BoundsWarpable())
         .insert(Life::new(PLAYER_START_HP))
-        ;
-}
-
-pub fn player_move_to_center_system(
-    mut commands: Commands,
-    mut query: Query<(Entity, &mut Transform, &PlayerComponent)>,
-    wdw_size: Res<WindowSize>
-){
-    if let Ok((entity, transform, _player)) = query.get_single_mut() {
-        
-        let tween: Tween<Transform> = Tween::new(
-            EaseFunction::ExponentialOut,
-            Duration::from_secs(2),
-            TransformPositionLens{
-                start: Vec3::new(0.0, -wdw_size.h, 0.0),
-                end: Vec3::new(transform.translation.x.clone(), 1.0, transform.translation.z.clone())
-            }
-        );
-        commands.entity(entity).insert(Animator::<Transform>::new(tween));
-    }
+        .insert(CleanUpEndGame::new(true))
+        .insert(Animator::<Transform>::new(tracks));
 }
 
 pub fn player_move_out_of_screen_system(
@@ -126,16 +155,30 @@ pub fn player_move_out_of_screen_system(
     mut query: Query<(Entity, &mut Transform, &PlayerComponent)>,
     wdw_size: Res<WindowSize>
 ){
-    if let Ok((entity, transform, _player)) = query.get_single_mut() {
+    if let Ok((entity, mut transform, _player)) = query.get_single_mut() {
         
+        transform.rotation = Quat::from_rotation_z(0.0);
+
         let tween: Tween<Transform> = Tween::new(
             EaseFunction::ExponentialOut,
             Duration::from_secs(2),
             TransformPositionLens{
-                start: transform.translation.clone(),
-                end: Vec3::new(transform.translation.x.clone(), wdw_size.h, transform.translation.z.clone())
-            }
+                    start: transform.translation.clone(),
+                    end: Vec3::new(0.0, wdw_size.h, transform.translation.z.clone())
+                }
         );
-        commands.entity(entity).insert(Animator::<Transform>::new(tween));
+        commands.entity(entity)
+            .insert(Animator::<Transform>::new(tween));
+            // .insert(CleanUpGameState::new(GameStates::EndGame, true));
+    }
+}
+
+pub fn clean_up_player_tween(
+    mut commands: Commands,
+    mut query: Query<(Entity, &PlayerComponent)>
+){
+    if let Ok((entity, _player)) = query.get_single_mut() {
+        info!("Clean Up Tween");
+        commands.entity(entity).remove::<Animator::<Transform>>();
     }
 }

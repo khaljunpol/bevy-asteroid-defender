@@ -3,24 +3,24 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::window::PrimaryWindow;
 use bevy_tweening::TweeningPlugin;
 use bevy_hanabi::prelude::*;
-use events::events::EventsPlugin;
+use common::collision::CollisionPlugin;
 use lib::BORDER_EXTRA_SPACE;
-use player::player::player_spawn_system;
-use state::states::{ProgressionStatePlugin, EndGameStatePlugin};
+use state::states::{ProgressionStatePlugin, EndGameStatePlugin, BaseStatePlugin};
 
 use crate::{
     resources::WindowSize,
     objects::{
         powerup::PowerUpPlugin,
         meteor::MeteorPlugin,
+        projectile::ProjectilePlugin
     },
+    events::events::EventsPlugin,
     state::states::
         {
             InGameStatePlugin, StartGameStatePlugin, GameStates
         },
     player::{
         player::PlayerPlugin,
-        projectile::ProjectilePlugin,
         ship::ShipPlugin,
     },
     resources::{
@@ -60,18 +60,19 @@ fn main() {
  .add_plugins(bevy_screen_diags::ScreenDiagsTextPlugin)
  .add_plugins(TweeningPlugin)
  .add_plugins(HanabiPlugin)
+ .add_plugins(BaseStatePlugin)
  .add_plugins(StartGameStatePlugin)
  .add_plugins(InGameStatePlugin)
  .add_plugins(ProgressionStatePlugin)
  .add_plugins(EndGameStatePlugin)
  .add_plugins(PlayerPlugin)
  .add_plugins(ShipPlugin)
+ .add_plugins(CollisionPlugin)
  .add_plugins(PowerUpPlugin)
  .add_plugins(MeteorPlugin)
  .add_plugins(ProjectilePlugin)
  .add_plugins(EventsPlugin)
  .add_systems(PreStartup, startup_system)
- .add_systems(Startup, player_spawn_system)
  .run();
 }
 

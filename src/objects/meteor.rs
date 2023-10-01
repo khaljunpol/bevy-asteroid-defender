@@ -1,14 +1,16 @@
-use bevy::prelude::*;
+use std::time::Duration;
+
+use bevy::{prelude::*, time::common_conditions::on_timer};
 use rand::prelude::*;
 
-use lib::{METEOR_MAX_COUNT, MeteorSizeType, METEOR_DMG, METEOR_SIZE};
+use lib::{METEOR_MAX_COUNT, MeteorSizeType, METEOR_DMG, METEOR_SIZE, METEOR_SPAWN_TIME};
 use crate::{
     common::common_components::{RotationAngle, Velocity, Position, HitBoxSize, CollisionDespawnableWithDamage, BoundsDespawnableWithTimer, MeteorCollision},
     resources::{GameSprites, WindowSize}, 
-    utils::utils::{
+    utils::{utils::{
             get_angle_to_target, calculate_max_spawn_distance
-        }, 
-    player::player::PlayerComponent
+        }, cleanup::{CleanUpEndGame}}, 
+    player::player::PlayerComponent, state::states::GameStates
 };
 
 #[derive(Component, Default, Reflect)]
@@ -22,7 +24,12 @@ pub struct MeteorPlugin;
 
 impl Plugin for MeteorPlugin{
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, meteor_rotation_system);
+        app
+            .add_systems(Update, meteor_rotation_system)
+            // Spawn
+            .add_systems(Update, spawn_meteor_system
+                .run_if(in_state(GameStates::InGame)
+                .and_then(on_timer(Duration::from_secs_f32(METEOR_SPAWN_TIME)))));
     }
 }
 
@@ -32,7 +39,7 @@ fn meteor_rotation_system(mut query: Query<(&MeteorComponent, &mut RotationAngle
     }
 }
 
-pub fn spawn_meteor_system(
+fn spawn_meteor_system(
     mut commands: Commands,
     mut game_sprites: Res<GameSprites>,
     wdw_size: Res<WindowSize>,
@@ -134,7 +141,9 @@ pub fn spawn_meteor(
     )))
     .insert(RotationAngle(rotation))
     .insert(BoundsDespawnableWithTimer::new(bounds_offset, 3.0, 1.0))
-    .insert(CollisionDespawnableWithDamage::new(true, get_damage_from_type(size)));
+    .insert(CollisionDespawnableWithDamage::new(true, get_damage_from_type(size)))
+    .insert(CleanUpEndGame::new(true))
+    ;
 }
 
 fn get_damage_from_type(_size_type: MeteorSizeType) -> f32 {
