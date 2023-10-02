@@ -146,7 +146,7 @@ pub fn spawn_meteor(
     ;
 }
 
-fn get_damage_from_type(_size_type: MeteorSizeType) -> f32 {
+fn get_damage_from_type(_size_type: MeteorSizeType) -> i32 {
     for (st, stats) in METEOR_DMG {
         if st == _size_type {
             return stats;

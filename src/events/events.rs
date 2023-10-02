@@ -1,6 +1,6 @@
 use bevy::{prelude::*, ecs::schedule::ScheduleLabel};
 
-use crate::{state::states::GameStates, player::player::PlayerComponent, common::common_components::Life, utils::manager::game_end};
+use crate::{state::states::GameStates, player::player::PlayerComponent, utils::manager::game_end, resources::Life};
 
 #[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
 struct EventSchedule;
@@ -56,13 +56,11 @@ pub fn event_cleanup<T: Event>(
 }
 
 pub fn check_player_dead_event(
-    mut player_query: Query<(&Life), With<PlayerComponent>>,
+    mut life: ResMut<Life>,
     mut ev_played_dead: EventWriter<PlayerDeadEvent>,
 ) {
-    for player_life in player_query.iter_mut() {
-        if player_life.current_life <= 0.0 {
-            ev_played_dead.send(PlayerDeadEvent);
-        }
+    if life.current_life <= 0 {
+        ev_played_dead.send(PlayerDeadEvent);
     }
 }
 

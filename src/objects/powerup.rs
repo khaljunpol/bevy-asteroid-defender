@@ -154,7 +154,7 @@ fn spawn_powerup_system(
             .insert(Position(Vec2::new(position.x, position.y)))
             .insert(RotationAngle(rotation))
             .insert(BoundsDespawnable(Vec2::new(10.0, 10.0)))
-            .insert(CollisionDespawnableWithDamage::new(false, 0.0))
+            .insert(CollisionDespawnableWithDamage::new(false, 0))
             .insert(CleanUpEndGame::new(true))
             ;
     }

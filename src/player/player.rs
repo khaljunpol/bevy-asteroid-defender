@@ -6,7 +6,7 @@ use lib::{
     PLAYER_MAX_SPEED, PLAYER_SHOOT_COOLDOWN, ShipType, PLAYER_SIZE, PLAYER_START_HP
 };
 use crate::{common::common_components::{
-    Velocity, RotationAngle, HitBoxSize, Position, BoundsWarpable, Life
+    Velocity, RotationAngle, HitBoxSize, Position, BoundsWarpable
 }, resources::{SHIP_NORMAL_SPRITE, SHIP_SHIELD_SPRITE, SHIP_ATTACK_SPRITE, WindowSize}, utils::cleanup::{CleanUpEndGame}, events::events::{PlayerSpawnEvent, event_cleanup, PlayerDeadEvent, check_player_dead_event}, objects::projectile::projectile_shoot_system, state::states::GameStates};
 
 use super::ship::ShipComponent;
@@ -145,7 +145,6 @@ pub fn player_spawn_system(
         .insert(Position(Vec2::splat(0.0)))
         .insert(RotationAngle(0.0))
         .insert(BoundsWarpable())
-        .insert(Life::new(PLAYER_START_HP))
         .insert(CleanUpEndGame::new(true))
         .insert(Animator::<Transform>::new(tracks));
 }

@@ -4,14 +4,16 @@ use rand::{
     prelude::*, distributions::Standard
 };
 
+pub const MAX_FRAMERATE: f64 = 60.0;
+
 pub const PLAYER_SIZE: Vec2 = Vec2::new(50.0, 50.0);
 pub const POWER_UP_SIZE: Vec2 = Vec2::new(33.0, 33.0);
 pub const PROJECTILE_SIZE: Vec2 = Vec2::new(9., 54.);
 
-pub const METEOR_DMG: [(MeteorSizeType, f32); 3] = [
-    (MeteorSizeType::Small, 10.0),
-    (MeteorSizeType::Medium, 25.0),
-    (MeteorSizeType::Large, 50.0),
+pub const METEOR_DMG: [(MeteorSizeType, i32); 3] = [
+    (MeteorSizeType::Small, 1),
+    (MeteorSizeType::Medium, 1),
+    (MeteorSizeType::Large, 1),
 ];
 
 pub const METEOR_SIZE: [(MeteorSizeType, Vec2); 3] = [
@@ -25,7 +27,7 @@ pub const PLAYER_ACCELERATION: f32 = 0.15;
 pub const PLAYER_DECELERATION: f32 = 0.01;
 pub const PLAYER_MAX_SPEED: f32 = 5.0;
 pub const PLAYER_SHOOT_COOLDOWN: f32 = 0.15;
-pub const PLAYER_START_HP: f32 = 100.0;
+pub const PLAYER_START_HP: i32 = 3;
 
 pub const BORDER_EXTRA_SPACE: f32 = 100.0;
 

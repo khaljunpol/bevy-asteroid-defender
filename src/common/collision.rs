@@ -16,10 +16,10 @@ use crate::{
         powerup::PowerUpComponent,
         meteor::{MeteorComponent, spawn_meteor}, projectile::{ProjectileDespawnComponent, ProjectileComponent}
     },
-    resources::GameSprites, state::states::{GameStates}, events::events::PlayerDeadEvent
+    resources::{GameSprites, Life}, state::states::{GameStates}, events::events::PlayerDeadEvent
 };
 
-use super::common_components::{Life, MeteorCollision};
+use super::common_components::{MeteorCollision};
 
 pub struct CollisionPlugin;
 impl Plugin for CollisionPlugin {
@@ -126,26 +126,24 @@ fn player_collide_despawnable_system(
 
 fn collision_damage_system(
     mut commands: Commands,
-    mut player_query: Query<&mut Life, With<PlayerComponent>>,
     damage_query: Query<(Entity, &DamageCollision)>,
     mut ev_played_dead: EventWriter<PlayerDeadEvent>,
+    mut life: ResMut<Life>
 ) {
     // Iterate through player
-    for mut player_life in player_query.iter_mut() {
-        for (entity, damage_collision) in damage_query.iter() {
-            // deduct damage value from damage component
-            player_life.current_life -= damage_collision.0;
+    for (entity, damage_collision) in damage_query.iter() {
+        // deduct damage value from damage component
+        life.current_life -= damage_collision.0;
 
-            println!("{:?}", player_life.current_life);
+        println!("{:?}", life.current_life);
 
-            // despawn DamageCollisionDespawnable entity
-            commands.entity(entity).despawn();
+        // despawn DamageCollisionDespawnable entity
+        commands.entity(entity).despawn();
 
-            if player_life.current_life <= 0.0 {
-                player_life.current_life = 0.0;
-                ev_played_dead.send(PlayerDeadEvent);
-                break;
-            }
+        if life.current_life <= 0 {
+            life.current_life = 0;
+            ev_played_dead.send(PlayerDeadEvent);
+            break;
         }
     }
 }
