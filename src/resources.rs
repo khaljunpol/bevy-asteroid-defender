@@ -56,8 +56,25 @@ pub struct WindowDespawnBorder {
 
 #[derive(Resource)]
 pub struct Score {
-    pub current: f32,
-    pub max: f32
+    pub current: i32,
+    pub high_score: i32
+}
+
+impl Score {
+    pub fn new(score: i32) -> Self {
+        Score { current: score, high_score: 0 }
+    }
+
+    pub fn reset(&mut self) {
+        self.high_score = self.current;
+        self.current = 0;
+    }
+}
+
+pub fn reset_score(
+    mut score: ResMut<Score>
+){
+    score.reset();  
 }
 
 #[derive(Resource)]
@@ -72,7 +89,7 @@ impl Life {
     }
 
     pub fn reset(&mut self) {
-        self.current_life = self.max_life;
+        self.current_life = PLAYER_START_HP;
     }
 }
 
@@ -81,3 +98,4 @@ pub fn reset_life(
 ){
     life.reset();  
 }
+

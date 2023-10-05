@@ -11,6 +11,10 @@ use crate::{
     resources::{GameSprites, WindowSize}, state::states::GameStates, utils::cleanup::{CleanUpEndGame}
 };
 
+/**
+ * Initial plan for this was to be a projectile power up but for this project
+ * we'll use this as a hp increase if same color as ship is collected
+ */
 #[derive(Component)]
 pub struct PowerUpComponent {
     pub rotation_speed: f32,

@@ -12,8 +12,14 @@ pub const PROJECTILE_SIZE: Vec2 = Vec2::new(9., 54.);
 
 pub const METEOR_DMG: [(MeteorSizeType, i32); 3] = [
     (MeteorSizeType::Small, 1),
-    (MeteorSizeType::Medium, 1),
-    (MeteorSizeType::Large, 1),
+    (MeteorSizeType::Medium, 2),
+    (MeteorSizeType::Large, 3),
+];
+
+pub const METEOR_SCORE: [(MeteorSizeType, i32); 3] = [
+    (MeteorSizeType::Small, 50),
+    (MeteorSizeType::Medium, 20),
+    (MeteorSizeType::Large, 5),
 ];
 
 pub const METEOR_SIZE: [(MeteorSizeType, Vec2); 3] = [
@@ -28,6 +34,8 @@ pub const PLAYER_DECELERATION: f32 = 0.01;
 pub const PLAYER_MAX_SPEED: f32 = 5.0;
 pub const PLAYER_SHOOT_COOLDOWN: f32 = 0.15;
 pub const PLAYER_START_HP: i32 = 3;
+pub const PLAYER_START_SCORE: i32 = 0;
+pub const PLAYER_HP_ADD: i32 = 1;
 
 pub const BORDER_EXTRA_SPACE: f32 = 100.0;
 

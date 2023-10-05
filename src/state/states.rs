@@ -6,7 +6,7 @@ use crate::{
     common::common_systems::{
         movement_system, update_transform_system, update_rotation_system,
         despawn_if_reached_bounds_system, warp_if_reached_window_bounds_system, despawn_if_reached_bounds_timer_system
-    }, events::events::{send_state_start_event, send_state_end_event}, utils::{cleanup::{cleanup_system, CleanUpEndGame}, manager::{game_start, game_restart}}, player::player::{player_move_out_of_screen_system, clean_up_player_tween, player_spawn_system}, resources::reset_life
+    }, events::events::{send_state_start_event, send_state_end_event}, utils::{cleanup::{cleanup_system, CleanUpEndGame}, manager::{game_start, game_restart}}, player::player::clean_up_player_tween, resources::{reset_life, reset_score}
 };
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -53,7 +53,7 @@ pub struct StartGameStatePlugin;
 impl Plugin for StartGameStatePlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_systems(OnEnter(GameStates::StartGame), reset_life)
+        .add_systems(OnEnter(GameStates::StartGame), (reset_life, reset_score))
         .add_systems(OnEnter(GameStates::StartGame), send_state_start_event)
         .add_systems(OnExit(GameStates::StartGame), send_state_end_event)
         .add_systems(OnTransition{from: GameStates::StartGame, to: GameStates::InGame}, (clean_up_player_tween))

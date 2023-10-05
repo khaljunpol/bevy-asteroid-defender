@@ -1,7 +1,7 @@
 use bevy::{prelude::*, 
     sprite::collide_aabb::collide, 
     math::Vec3Swizzles};
-use lib::{ShipType, MeteorSizeType};
+use lib::{ShipType, MeteorSizeType, METEOR_SCORE, PLAYER_HP_ADD};
 use rand::{thread_rng, Rng};
 
 use std::collections::HashSet;
@@ -16,7 +16,7 @@ use crate::{
         powerup::PowerUpComponent,
         meteor::{MeteorComponent, spawn_meteor}, projectile::{ProjectileDespawnComponent, ProjectileComponent}
     },
-    resources::{GameSprites, Life}, state::states::{GameStates}, events::events::PlayerDeadEvent
+    resources::{GameSprites, Life, Score}, state::states::{GameStates}, events::events::PlayerDeadEvent
 };
 
 use super::common_components::{MeteorCollision};
@@ -41,6 +41,7 @@ fn player_collide_powerup_system(
     player_query: Query<(&Transform, &HitBoxSize), With<PlayerComponent>>,
     powerup_query: Query<(&Transform, &HitBoxSize, &PowerUpComponent), With<PowerUpComponent>>,
     mut ship_type_query: Query<(&mut Handle<Image>, &mut ShipComponent), With<PlayerComponent>>,
+    mut life: ResMut<Life>
 ){
     // Iterate through player
     for (player_tf, player_hitbox) in player_query.iter() {
@@ -62,16 +63,25 @@ fn player_collide_powerup_system(
             // Check for collision
             if collision.is_some() {
                 for (mut texture_handle, mut ship_component) in ship_type_query.iter_mut() {
-                    *ship_component = ShipComponent::new_type(powerup.get_ship_change_type());
+                    let target_type = powerup.get_ship_change_type();
 
-                    // Load a new texture and update the handle
-                    let new_texture_handle: Handle<Image> = match ship_component.ship_type {
-                        ShipType::Attack => game_sprites.ship_type_attack.clone(),
-                        ShipType::Shield => game_sprites.ship_type_shield.clone(),
-                        ShipType::Normal => game_sprites.ship_type_normal.clone()
-                    };
+                    // Add HP if same as type
+                    if(ship_component.ship_type == target_type){
+                        life.current_life += PLAYER_HP_ADD;
+                    }
+                    // Change ship type
+                    else{
+                        *ship_component = ShipComponent::new_type(target_type);
 
-                    *texture_handle = new_texture_handle;
+                        // Load a new texture and update the handle
+                        let new_texture_handle: Handle<Image> = match ship_component.ship_type {
+                            ShipType::Attack => game_sprites.ship_type_attack.clone(),
+                            ShipType::Shield => game_sprites.ship_type_shield.clone(),
+                            ShipType::Normal => game_sprites.ship_type_normal.clone()
+                        };
+    
+                        *texture_handle = new_texture_handle;
+                    }
                 }
             }
         }
@@ -155,6 +165,7 @@ fn player_projectile_hit_meteor_system(
         With<ProjectileComponent>,
     >,
     meteor_query: Query<(Entity, &Transform, &HitBoxSize, &MeteorComponent), With<MeteorComponent>>,
+    mut score: ResMut<Score>
 ) {
     let mut despawned_entities: HashSet<Entity> = HashSet::new();
 
@@ -194,7 +205,15 @@ fn player_projectile_hit_meteor_system(
                 commands.entity(proj_entity).despawn();
                 despawned_entities.insert(proj_entity);
 
-                let size = asteroid.size as i32;
+                let size: i32 = asteroid.size as i32;
+                
+                for (st, scr) in METEOR_SCORE {
+                    if st == asteroid.size {
+                        // Add score per meteor
+                        score.current += scr;
+                    }
+                }
+
                 
                 // Store position to spawn smaller asteroids
                 if size > 0 {

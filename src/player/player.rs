@@ -149,6 +149,29 @@ pub fn player_spawn_system(
         .insert(Animator::<Transform>::new(tracks));
 }
 
+pub fn player_fade_out(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &PlayerComponent)>,
+    wdw_size: Res<WindowSize>
+){
+    if let Ok((entity, mut transform, _player)) = query.get_single_mut() {
+        
+        transform.rotation = Quat::from_rotation_z(0.0);
+
+        let tween: Tween<Transform> = Tween::new(
+            EaseFunction::ExponentialOut,
+            Duration::from_secs(2),
+            TransformPositionLens{
+                    start: transform.translation.clone(),
+                    end: Vec3::new(0.0, wdw_size.h, transform.translation.z.clone())
+                }
+        );
+        commands.entity(entity)
+            .insert(Animator::<Transform>::new(tween));
+            // .insert(CleanUpGameState::new(GameStates::EndGame, true));
+    }
+}
+
 pub fn player_move_out_of_screen_system(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &PlayerComponent)>,

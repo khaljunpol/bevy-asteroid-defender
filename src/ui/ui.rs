@@ -1,14 +1,15 @@
 use bevy::{prelude::*, ui::widget::UiImageSize};
 
-use crate::{state::states::GameStates, resources::{Life, GameSprites}};
+use crate::{state::states::GameStates, resources::{Life, GameSprites, Score}};
 
 pub struct UIPlugin;
 
 impl Plugin for UIPlugin{
     fn build(&self, app: &mut App) {
         app
-            // .add_systems(OnEnter(GameStates::StartGame), spawn_ui)
-            // .add_systems(Update, update_hp_ui)
+            .add_systems(OnEnter(GameStates::StartGame), spawn_score_ui)
+            .add_systems(Update, update_score_ui)
+            .add_systems(OnExit(GameStates::InGame), despawn_score_ui)
             .add_systems(OnEnter(GameStates::StartGame), spawn_life_ui)
             .add_systems(OnExit(GameStates::InGame), despawn_life_ui)
             .add_systems(Update, update_life_image);
@@ -16,7 +17,10 @@ impl Plugin for UIPlugin{
 }
 
 #[derive(Component)]
-pub struct HPText;
+pub struct ScoreText;
+
+#[derive(Component)]
+pub struct ScoreUI;
 
 #[derive(Component)]
 pub struct LifeUI;
@@ -42,7 +46,7 @@ fn spawn_life_ui(
         .spawn((
             NodeBundle{
                 style: Style {
-                    width: Val::Percent(100.0),
+                    width: Val::Percent(50.0),
                     height: Val::Percent(10.0),
                     align_items: AlignItems::Center,
                     padding: UiRect::all(Val::Px(10.0)),
@@ -91,27 +95,28 @@ fn update_life_image(mut images: Query<(&mut UiImage, &ToggleImage), With<Toggle
     }
 }
 
-fn spawn_ui(mut commands: Commands){
+fn spawn_score_ui(mut commands: Commands){
     commands
         .spawn((
             NodeBundle{
                 style: Style {
-                    width: Val::Percent(100.0),
+                    width: Val::Percent(50.0),
                     height: Val::Percent(10.0),
                     align_items: AlignItems::Center,
                     padding: UiRect::all(Val::Px(10.0)),
                     ..default()
                 },
-                background_color: Color::BLUE.into(),
+                background_color: Color::NONE.into(),
                 ..default()
             },
-            Name::new("UI Root")
+            Name::new("UI Root"),
+            ScoreUI
         ))
         .with_children(|commands| {
             commands.spawn((
                 TextBundle {
                     text: Text::from_section(
-                        "HP:",
+                        "SCORE:",
                         TextStyle {
                             font_size: 32.0,
                             ..default()
@@ -119,13 +124,19 @@ fn spawn_ui(mut commands: Commands){
                     ),
                     ..default()
                 },
-                HPText,
+                ScoreText,
             ));
         });
 }
 
-fn update_hp_ui(mut texts: Query<&mut Text, With<HPText>>, life: Res<Life>) {
+fn despawn_score_ui(mut commands: Commands, mut text: Query<Entity, With<ScoreUI>>){
+    for entity in &text {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+fn update_score_ui(mut texts: Query<&mut Text, With<ScoreText>>, score: Res<Score>) {
     for mut text in &mut texts {
-        text.sections[0].value = format!("HP: {:?} : {:?}", life.current_life, life.max_life);
+        text.sections[0].value = format!("SCORE: {:?} - HIGHEST: {:?}", score.current, score.high_score);
     }
 }

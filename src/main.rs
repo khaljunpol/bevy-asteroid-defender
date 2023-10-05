@@ -1,12 +1,11 @@
-use bevy::{prelude::*, core_pipeline::bloom::BloomSettings, diagnostic::{LogDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, window::PresentMode};
-use bevy_framepace::{FramepacePlugin, FramePaceStats, FramepaceSettings, Limiter};
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy::{prelude::*, core_pipeline::bloom::BloomSettings};
+use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
 use bevy::window::PrimaryWindow;
 use bevy_tweening::TweeningPlugin;
 use bevy_hanabi::prelude::*;
 use common::collision::CollisionPlugin;
-use lib::{BORDER_EXTRA_SPACE, PLAYER_START_HP, MAX_FRAMERATE};
-use resources::{Life, LIFE_NORMAL_SPRITE, LIFE_ATTACK_SPRITE, LIFE_SHIELD_SPRITE};
+use lib::{BORDER_EXTRA_SPACE, PLAYER_START_HP, MAX_FRAMERATE, PLAYER_START_SCORE};
+use resources::{Life, LIFE_NORMAL_SPRITE, LIFE_ATTACK_SPRITE, LIFE_SHIELD_SPRITE, Score};
 use state::states::{ProgressionStatePlugin, EndGameStatePlugin, BaseStatePlugin};
 use ui::ui::UIPlugin;
 
@@ -62,10 +61,10 @@ fn main() {
         }),
         ..default()
     }))
- .add_plugins(WorldInspectorPlugin::new())
+//  .add_plugins(WorldInspectorPlugin::new()) // inspector
  .add_plugins(FramepacePlugin)
- .add_plugins(LogDiagnosticsPlugin::default())
- .add_plugins(FrameTimeDiagnosticsPlugin::default())
+//  .add_plugins(LogDiagnosticsPlugin::default()) // frame logging
+//  .add_plugins(FrameTimeDiagnosticsPlugin::default()) // frame logging
  .add_plugins(TweeningPlugin)
  .add_plugins(HanabiPlugin)
  .add_plugins(BaseStatePlugin)
@@ -141,5 +140,6 @@ fn startup_system(
     commands.insert_resource(game_sprites);
 
     // add in game values
-    commands.insert_resource(Life::new(PLAYER_START_HP))
+    commands.insert_resource(Life::new(PLAYER_START_HP));
+    commands.insert_resource(Score::new(PLAYER_START_SCORE));
 }
