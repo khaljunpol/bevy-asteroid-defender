@@ -1,47 +1,38 @@
 use bevy::prelude::*;
-use lib::{
-    Stats, ShipType, DEFAULT_STATS
-};
 use rand::prelude::*;
 
-use crate::
-{
-    player::player::PlayerComponent, 
-    resources::GameSprites
+use lib::{Stats, ShipType, DEFAULT_STATS};
+use crate::{
+    player::player::PlayerComponent,
+    resources::{GameSprites, SHIP_NORMAL_SPRITE, SHIP_ATTACK_SPRITE, SHIP_SHIELD_SPRITE},
 };
 
 #[derive(Component)]
 pub struct ShipComponent {
     pub ship_type: ShipType,
-    pub stats: Stats
+    pub stats:     Stats,
 }
 
 impl ShipComponent {
-    pub fn new() -> ShipComponent {
-        let ship_type = Self::randomize_type();
-        let stats = Self::get_stats_from_type(ship_type);
-
-        ShipComponent { ship_type, stats }
+    pub fn new() -> Self {
+        let ship_type = Self::random_type();
+        ShipComponent { ship_type, stats: Self::stats_for(ship_type) }
     }
 
-    pub fn new_type(ship_type: ShipType) -> ShipComponent {
-        let stats = Self::get_stats_from_type(ship_type);
-        ShipComponent { ship_type, stats }
+    pub fn new_type(ship_type: ShipType) -> Self {
+        ShipComponent { ship_type, stats: Self::stats_for(ship_type) }
     }
 
-    fn randomize_type() -> ShipType {
-        let mut rng = thread_rng();
-        // Generate a random ShipType
-        rng.gen()
+    fn random_type() -> ShipType {
+        thread_rng().gen()
     }
 
-    fn get_stats_from_type(_ship_type: ShipType) -> Stats {
-        for (st, stats) in DEFAULT_STATS {
-            if st == _ship_type {
-                return stats;
-            }
-        }
-        DEFAULT_STATS[0].1.clone()
+    fn stats_for(ship_type: ShipType) -> Stats {
+        DEFAULT_STATS
+            .iter()
+            .find(|(st, _)| *st == ship_type)
+            .map(|(_, s)| *s)
+            .unwrap_or(DEFAULT_STATS[0].1)
     }
 }
 
@@ -49,28 +40,21 @@ pub struct ShipPlugin;
 
 impl Plugin for ShipPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, randomize_type_system);
+        app.add_systems(Update, sync_ship_texture_system);
     }
 }
 
-fn randomize_type_system(
-    keyboard_input: Res<Input<KeyCode>>,
-    game_sprites: Res<GameSprites>,
-    mut query: Query<(&mut Handle<Image>, &mut ShipComponent), With<PlayerComponent>>,
-)
-{
-    for (mut texture_handle, mut ship_component) in query.iter_mut() {
-        if keyboard_input.just_pressed(KeyCode::X) {
-            *ship_component = ShipComponent::new();
-        }
-
-        // Load a new texture and update the handle
-        let new_texture_handle: Handle<Image> = match ship_component.ship_type {
+/// Keeps the ship sprite in sync with the current ShipComponent type.
+fn sync_ship_texture_system(
+    game_sprites:   Res<GameSprites>,
+    mut query:      Query<(&mut Handle<Image>, &ShipComponent), With<PlayerComponent>>,
+) {
+    for (mut tex, ship) in &mut query {
+        let new_handle = match ship.ship_type {
             ShipType::Attack => game_sprites.ship_type_attack.clone(),
+            ShipType::Normal => game_sprites.ship_type_normal.clone(),
             ShipType::Shield => game_sprites.ship_type_shield.clone(),
-            ShipType::Normal => game_sprites.ship_type_normal.clone()
         };
-
-        *texture_handle = new_texture_handle;
+        *tex = new_handle;
     }
 }

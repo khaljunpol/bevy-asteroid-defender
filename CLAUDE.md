@@ -1,34 +1,45 @@
 # CLAUDE.md — Bevy Asteroid Defender
 
-This file provides AI assistants with a comprehensive guide to the `bevy-asteroid-defender` codebase, conventions, and development workflows.
+This file is the AI-assistant guide for the `bevy-asteroid-defender` codebase.
+Keep it up to date when architecture or conventions change.
 
 ---
 
 ## Project Overview
 
-**Bevy Meteor Defender** is a classic arcade-style asteroid shooter built with Rust and the [Bevy](https://bevyengine.org/) game engine (v0.11). The project serves as a learning exercise in Bevy's Entity Component System (ECS) architecture.
+**Bevy Asteroid Defender Roguelike** is an arcade asteroid shooter with per-level
+roguelike upgrade picks, built with Rust and the [Bevy](https://bevyengine.org/)
+game engine (v0.11).
 
 - **Language:** Rust (edition 2021)
 - **Engine:** Bevy 0.11.2
-- **Binary name:** `bevy-defender-game`
+- **Binary:** `bevy-defender-game`
+- **Targets:** native desktop + web (WASM via [Trunk](https://trunkrs.dev/))
 
 ---
 
 ## Build & Run
 
 ```bash
-# Development (fast compile via dynamic linking + opt-level=1)
+# Development – fast native compile (dynamic linking via the `dev` feature)
+cargo run --features dev
+
+# Standard native build (no dynamic linking)
 cargo run
 
 # Release build
 cargo build --release
-./target/release/bevy-defender-game
 
-# Check for errors without building
-cargo check
+# Web build (requires: cargo install trunk + wasm32 target)
+rustup target add wasm32-unknown-unknown
+cargo install trunk
+trunk serve          # http://localhost:8080  (live-reload)
+trunk build --release  # outputs to ./dist/
 ```
 
-There is no Makefile. Use standard `cargo` commands. The `bevy` dependency uses the `dynamic_linking` feature in development for faster iteration.
+> `bevy_framepace` (frame-rate limiter) is a **native-only** dependency.
+> On WASM the browser's own vsync handles frame pacing.
+> Dynamic linking (`bevy/dynamic_linking`) is only activated with `--features dev`.
 
 ---
 
@@ -36,161 +47,194 @@ There is no Makefile. Use standard `cargo` commands. The `bevy` dependency uses 
 
 ```
 bevy-asteroid-defender/
-├── Cargo.toml            # Dependencies and build profiles
-├── README.md
-├── CLAUDE.md             # This file
+├── Cargo.toml          # Dependencies and build profiles
+├── index.html          # Trunk entry point for WASM builds
+├── CLAUDE.md           # This file
 ├── assets/
-│   ├── fonts/            # screen-diags-font.ttf
+│   ├── fonts/          # screen-diags-font.ttf
 │   └── sprites/
-│       ├── ships/        # 9 ship variants (3 types × 3 colors)
-│       ├── laser/        # 3 colored projectiles (Blue, Green, Red)
-│       ├── meteor/       # 3 size variants (Big, Med, Small)
-│       ├── powerup/      # 12 power-up variation sprites
-│       ├── effects/      # Particle effect and icon sprites (19 files)
-│       └── ui/           # Life indicator sprites (4 colors)
+│       ├── ships/      # 9 ship sprites (3 types × 3 colours)
+│       ├── laser/      # 3 coloured projectile sprites
+│       ├── meteor/     # 3 meteor size sprites
+│       ├── powerup/    # HP-pack sprite (blue star)
+│       ├── effects/    # Particle / icon sprites
+│       └── ui/         # Life-indicator sprites
 └── src/
-    ├── main.rs           # App entry point and plugin registration
-    ├── lib.rs            # Global constants and shared type aliases
-    ├── resources.rs      # Bevy Resources (GameSprites, WindowSize, Score, Life)
-    ├── background.rs     # Placeholder (empty)
+    ├── main.rs         # App entry point, plugin wiring, PreStartup setup
+    ├── lib.rs          # Global constants and shared types (separate crate)
+    ├── resources.rs    # All Bevy Resources + asset-path constants
+    ├── background.rs   # Placeholder (starfield could go here)
     ├── player/
-    │   ├── mod.rs
-    │   ├── player.rs     # Player movement, shooting, death, tween animations
-    │   └── ship.rs       # ShipComponent, ShipType enum, Stats struct
+    │   ├── player.rs   # PlayerComponent, movement, spawn/fly-out, tween
+    │   └── ship.rs     # ShipComponent, ShipPlugin, texture sync
     ├── objects/
-    │   ├── mod.rs
-    │   ├── meteor.rs     # MeteorComponent, spawning, splitting logic
-    │   ├── projectile.rs # ProjectileComponent, firing, despawn timer
-    │   └── powerup.rs    # PowerUpComponent, ship-type changing, spawning
+    │   ├── meteor.rs   # MeteorComponent (HP), level-start spawn, flash, level-complete check
+    │   ├── projectile.rs  # ProjectileComponent (damage), split-shot, ricochet, chain-reaction timer
+    │   └── powerup.rs  # PowerUpComponent (HP pack), magnet drift, timed spawn
     ├── common/
-    │   ├── mod.rs
-    │   ├── common_components.rs  # Velocity, Position, RotationAngle, HitBoxSize, bounds markers
-    │   ├── common_systems.rs     # Movement, wrapping, despawning, transform sync
-    │   └── collision.rs          # AABB collision detection for all game objects
+    │   ├── common_components.rs  # Shared ECS components (Velocity, Position, …)
+    │   ├── common_systems.rs     # Movement, wrapping, bounds-despawn, transform sync
+    │   └── collision.rs          # All AABB collision logic (projectile↔meteor, player↔meteor, player↔powerup)
     ├── state/
-    │   ├── mod.rs
-    │   └── states.rs     # GameStates enum and state transition systems
+    │   └── states.rs   # GameStates enum + one Plugin per state
     ├── events/
-    │   ├── mod.rs
-    │   └── events.rs     # Custom Bevy events (PlayerDead, PlayerSpawn, StateStart/End)
+    │   └── events.rs   # PlayerDeadEvent, EventsPlugin
+    ├── upgrades/
+    │   └── upgrades.rs # UpgradeType enum, UpgradePlugin, input/apply logic
     ├── ui/
-    │   ├── mod.rs
-    │   └── ui.rs         # Score display, life/health icon UI
-    ├── effects/
-    │   ├── mod.rs
-    │   └── effects.rs    # Particle effects (bevy_hanabi, currently commented out)
+    │   └── ui.rs       # All UI: HUD, countdown, level indicator, level-clear, upgrade selection, game-over
     └── utils/
-        ├── mod.rs
-        ├── object_pool.rs  # Object pool skeleton (defined, not yet used)
-        └── setup.rs        # Empty setup utility stubs
+        ├── cleanup.rs  # CleanUpOnGameOver / CleanUpOnLevelEnd + generic cleanup_system
+        ├── manager.rs  # State-transition helper functions (goto_*)
+        └── utils.rs    # Math helpers (get_angle_to_target, etc.)
 ```
 
 ---
 
-## Architecture
-
-### ECS Pattern
-
-The codebase follows Bevy's ECS strictly:
-
-- **Components** hold data, never logic.
-- **Systems** hold logic, query entities by component combinations.
-- **Resources** hold global singleton state.
-- **Events** communicate between systems without tight coupling.
-- **Plugins** group related systems/events/resources for modular registration.
-
-### Game State Machine
+## Game Loop
 
 ```
-Menu → StartGame → InGame → Progression → EndGame → StartGame (loop)
+StartGame ──(1.8s tween)──► Countdown ──(3-2-1-GO!)──► InGame
+   ▲                                                      │
+   │                                              all meteors dead
+   │                                                      ▼
+   │                                             LevelComplete (2s)
+   │                                                      │
+   │                                             UpgradeSelection
+   │                                           (pick 1 of 3 upgrades)
+   │                                                      │
+   │                                              Countdown again
+   │                                                      │
+   │                                              InGame (next level)
+   │
+   └──(Space/Enter)── GameOver ◄──(player HP = 0)──── InGame
 ```
 
-| State | Behavior |
-|-------|----------|
-| `Menu` | Defined; no implementation yet |
-| `StartGame` | Reset resources, tween player in, wait 1.5s |
-| `InGame` | Meteor/powerup spawning, movement, collision, shooting active |
-| `Progression` | Defined; no implementation yet |
-| `EndGame` | Tween player out, cleanup all `CleanUpEndGame` entities, wait 1.5s |
-
-State transitions fire `StateStartEvent` and `StateEndEvent` for cross-system coordination.
-
-### Entity Lifecycle
-
-Dynamic entities (meteors, projectiles, power-ups, player) are tagged with `CleanUpEndGame`. On `EndGame` exit a generic cleanup system despawns all of them, preventing memory leaks across loops.
+Key transitions:
+| From | To | Trigger |
+|------|----|---------|
+| `StartGame` | `Countdown` | 1.8 s timer (player tween completes) |
+| `Countdown` | `InGame` | GO! timer expires |
+| `InGame` | `LevelComplete` | all `MeteorComponent` entities gone |
+| `InGame` | `GameOver` | `Life.current_life` reaches 0 |
+| `LevelComplete` | `UpgradeSelection` | 2 s timer |
+| `UpgradeSelection` | `Countdown` | player presses Space/Enter |
+| `GameOver` | `StartGame` | player presses Space/Enter |
 
 ---
 
-## Key Components
-
-| Component | Struct | Notes |
-|-----------|--------|-------|
-| Player identity | `PlayerComponent` | Marks the player entity |
-| Ship config | `ShipComponent { ship_type, stats }` | Three types: Normal / Shield / Attack |
-| Meteor | `MeteorComponent { size, rotation_speed }` | Three sizes: Large / Medium / Small |
-| Projectile | `ProjectileComponent` | Despawns after 3 s via `ProjectileDespawnComponent(Timer)` |
-| Power-up | `PowerUpComponent { powerup_type, change_target }` | Changes ship type or grants +1 HP |
-| Physics | `Velocity(Vec2)`, `Position(Vec2)`, `RotationAngle(f32)` | Shared across all moving entities |
-| Collision | `HitBoxSize(Vec2)` | Used in AABB checks |
-| Boundary | `BoundsWarpable`, `BoundsDespawnable`, `BoundsDespawnableWithTimer` | Controls edge behavior |
-| Collision marker | `CollisionDespawnableWithDamage` | Entity deals damage on player contact |
-| Cleanup | `CleanUpEndGame { despawn_entity: bool }` | Marks entity for state-exit cleanup |
-
----
-
-## Key Resources
-
-| Resource | Type | Purpose |
-|----------|------|---------|
-| `GameSprites` | Struct of `Handle<Image>` | All preloaded texture handles |
-| `WindowSize` | `{ w: f32, h: f32 }` | Current window dimensions (1280×720) |
-| `WindowDespawnBorder` | Struct | Boundary thresholds for despawn systems |
-| `Life` | `{ max_life, current_life }` | Player health (starts at 3) |
-| `Score` | `{ current, high_score }` | Score tracking |
-
----
-
-## Game Constants (`src/lib.rs`)
+## Game States (src/state/states.rs)
 
 ```rust
-MAX_FRAMERATE          = 60.0
-PLAYER_SIZE            = (50, 50)
-PLAYER_START_HP        = 3
-PLAYER_MAX_SPEED       = 5.0
-PLAYER_SHOOT_COOLDOWN  = 0.15  // seconds
-PROJECTILE_SPEED       = 10.0
-METEOR_SPAWN_TIME      = 3.0   // seconds between spawns
-POWERUP_SPAWN_TIME     = 5.0   // seconds between spawns
-METEOR_MAX_COUNT       = 10
-POWERUP_MAX_COUNT      = 3
+pub enum GameStates {
+    StartGame,        // reset + spawn player
+    Countdown,        // 3–2–1–GO!
+    InGame,           // active play
+    LevelComplete,    // level cleared celebration
+    UpgradeSelection, // roguelike pick
+    GameOver,         // death screen
+}
 ```
 
-Change game balance here. Do not hardcode magic numbers elsewhere.
+Each state has its own `Plugin` (e.g. `CountdownStatePlugin`) registered in `main.rs`.
 
 ---
 
-## Player Controls
+## Key Resources (src/resources.rs)
 
-| Key | Action |
-|-----|--------|
-| Arrow Up | Accelerate forward |
-| Arrow Left / Right | Rotate ship |
-| Space | Fire projectile (respects cooldown) |
-| X | Randomize ship type (debug / gameplay shortcut) |
+| Resource | Purpose |
+|----------|---------|
+| `GameSprites` | Preloaded `Handle<Image>` for all sprites |
+| `WindowSize` | Current window width/height |
+| `WindowDespawnBorder` | Outer despawn boundary rects |
+| `Life { max_life, current_life }` | Player HP |
+| `Score { current, high_score }` | Score tracking |
+| `LevelResource { current, total_asteroids_spawned }` | Level number + spawn guard |
+| `CountdownResource { count, tick_timer, go_timer }` | Countdown state data |
+| `PlayerUpgrades` | All active upgrades + runtime state (chain timer) |
+| `UpgradeSelectionState { choices, selected }` | Current upgrade pick screen state |
 
 ---
 
-## Collision System
+## Level Scaling
 
-Detection uses Bevy's built-in `bevy::sprite::collide_aabb::collide` (AABB).
+| Level | Asteroids | Large HP |
+|-------|-----------|----------|
+| 1 | 3 | 1 |
+| 2 | 4 | 1 |
+| 3 | 5 | 1 |
+| 4 | 6 | 2 |
+| 7 | 9 | 3 |
+| … | min(2+level, 12) | 1 + (level−1)÷3 |
 
-| Pair | Result |
+Split children (Medium, Small) always spawn with **1 HP** regardless of level.
+
+---
+
+## Roguelike Upgrades (src/upgrades/upgrades.rs)
+
+Three random eligible upgrades are shown after each level cleared.
+Arrow keys or A/D navigate; Space/Enter confirms.
+
+| Name | Category | Max Levels | Effect |
+|------|----------|------------|--------|
+| Split Shot | Offense | 3 | +2 bullets per level (spread pattern) |
+| Rapid Fire | Offense | 3 | –25% fire cooldown per level |
+| Heavy Rounds | Offense | 2 | +1 bullet damage per level |
+| Ricochet | Offense | 1 | Bullets bounce off screen edges once |
+| Extra Armor | Defense | 2 | +1 max HP, +1 current HP |
+| Afterburner | Defense | 2 | +30% top speed per level |
+| Quick Reflexes | Defense | 2 | +40% turn speed per level |
+| Overclock | Special | 1 | Asteroids move at 60% speed |
+| Chain Reaction | Special | 1 | Killing an asteroid triggers 3 s of ultra-rapid fire |
+| Asteroid Magnet | Special | 1 | HP packs slowly drift toward the player |
+
+An upgrade is **eligible** if `current_level < max_level`.
+Apply via `UpgradeType::apply(&mut upgrades, &mut life)`.
+
+---
+
+## Entity Cleanup Strategy
+
+| Component | Despawned when |
+|-----------|----------------|
+| `CleanUpOnGameOver` | `OnEnter(StartGame)` – full game reset; player carries this |
+| `CleanUpOnLevelEnd` | `OnExit(InGame)` – between levels; projectiles and powerups |
+
+Meteors also carry `CleanUpOnLevelEnd` via `BoundsDespawnable` and natural death,
+but the real guard is the level-complete check (all meteors gone → `LevelComplete`).
+
+---
+
+## Collision System (src/common/collision.rs)
+
+Detection method: `bevy::sprite::collide_aabb::collide` (AABB).
+
+| Pair | Effect |
 |------|--------|
-| Projectile → Meteor | Projectile despawns; meteor splits into 3 smaller or despawns if smallest; score increases |
-| Player → Meteor | Meteor despawns; player takes 1–3 damage based on meteor size |
-| Player → PowerUp | PowerUp despawns; ship type changes or +1 HP if same type as current |
+| Projectile → Meteor | HP – damage; if HP ≤ 0: despawn + spawn `MeteorSplitEvent` |
+| Meteor split | `meteor_split_system` reads `MeteorSplitEvent`, spawns 3 children (1 HP each) |
+| Player → Meteor | Meteor despawns; `DamageCollision` marker spawned; `apply_damage_system` deducts HP |
+| Player → Power-up | Power-up despawns; `PowerUpComponent::apply` adds 1 HP (capped at max) |
 
-Collision loops use a `HashSet` to prevent double-processing the same entity pair.
+Chain Reaction upgrade is triggered in `player_projectile_hit_meteor_system` via
+`trigger_chain_reaction(&mut upgrades)`.
+
+---
+
+## Player Upgrade Effects (runtime)
+
+| Upgrade | How applied |
+|---------|-------------|
+| Split Shot | `PlayerUpgrades::shot_offsets()` returns angle offsets; projectile system fires one bullet per offset |
+| Rapid Fire | `PlayerUpgrades::effective_shoot_cooldown()` multiplied by `0.75^level` |
+| Heavy Rounds | `PlayerUpgrades::bullet_damage()` = `1 + heavy_rounds` |
+| Ricochet | Projectile gets `ProjectileRicochet` component instead of `BoundsDespawnable` |
+| Afterburner | `PlayerUpgrades::effective_max_speed()` |
+| Quick Reflexes | `PlayerUpgrades::effective_turn_speed()` |
+| Overclock | Applied at spawn time in `spawn_level_asteroids` |
+| Chain Reaction | `chain_active` flag + `chain_timer` float; included in `effective_shoot_cooldown()` |
+| Asteroid Magnet | `powerup_magnet_system` nudges powerup velocity toward player each frame |
 
 ---
 
@@ -199,78 +243,74 @@ Collision loops use a `HashSet` to prevent double-processing the same entity pai
 | Category | Convention | Example |
 |----------|------------|---------|
 | Components | `PascalCase` + `Component` suffix | `PlayerComponent`, `MeteorComponent` |
-| Systems | `snake_case` + `_system` suffix | `collision_damage_system`, `spawn_meteor_system` |
-| Resources | `PascalCase` (no suffix) | `WindowSize`, `GameSprites` |
-| Enums | `PascalCase` | `GameStates`, `ShipType`, `MeteorSizeType` |
-| Constants | `UPPER_SNAKE_CASE` | `PLAYER_MAX_SPEED`, `METEOR_SPAWN_TIME` |
-| Events | `PascalCase` + `Event` suffix | `PlayerDeadEvent`, `StateStartEvent` |
-| Plugins | `PascalCase` + `Plugin` suffix | `PlayerPlugin`, `MeteorPlugin` |
+| Systems | `snake_case` + `_system` suffix | `collision_damage_system` |
+| Resources | `PascalCase`, no suffix | `WindowSize`, `PlayerUpgrades` |
+| Enums | `PascalCase` | `GameStates`, `UpgradeType` |
+| Constants | `UPPER_SNAKE_CASE` | `PLAYER_MAX_SPEED`, `OVERCLOCK_SPEED_MULT` |
+| Events | `PascalCase` + `Event` suffix | `PlayerDeadEvent` |
+| Plugins | `PascalCase` + `Plugin` suffix | `MeteorPlugin`, `UpgradePlugin` |
+| State managers | `PascalCase` + `StatePlugin` | `CountdownStatePlugin` |
 
 ---
 
 ## Adding New Features
 
-### New game object
-1. Create a component struct in `src/objects/<name>.rs`.
-2. Add a `Plugin` that registers spawn/movement/cleanup systems.
-3. Tag entities with `CleanUpEndGame` so they are cleaned up on state exit.
-4. Add texture handles to `GameSprites` in `resources.rs` and preload in `main.rs`.
-5. Register the plugin in `main.rs`.
+### New upgrade
+1. Add variant to `UpgradeType` in `src/upgrades/upgrades.rs`.
+2. Implement `name()`, `description()`, `max_level()`, `current_level()`, `apply()`, `category()`.
+3. Add a field to `PlayerUpgrades` in `src/resources.rs`.
+4. Wire the runtime effect into the relevant system (movement, shooting, spawn, etc.).
 
 ### New game state
 1. Add variant to `GameStates` in `src/state/states.rs`.
-2. Add transition systems with `.on_enter(GameStates::YourState)` and `.on_exit(...)`.
-3. Gate active systems with `.run_if(in_state(GameStates::YourState))`.
+2. Create a `XxxStatePlugin` with `OnEnter` / `OnExit` / `Update` systems.
+3. Register the plugin in `src/main.rs`.
+4. Add any new UI entry/exit systems in `UIPlugin`.
 
-### New collision type
-- Add detection logic inside `src/common/collision.rs` following the existing AABB pattern.
-- Use a `HashSet` to guard against duplicate processing in the same frame.
-
----
-
-## Dependencies Summary
-
-| Crate | Version | Use |
-|-------|---------|-----|
-| `bevy` | 0.11.2 | Core engine (ECS, rendering, input, assets) |
-| `bevy_tweening` | 0.8.0 | Tween animations (player entry/exit) |
-| `bevy_hanabi` | 0.7.0 | GPU particle effects (currently unused/commented) |
-| `bevy_framepace` | 0.13.3 | Frame rate limiter (60 FPS cap) |
-| `bevy-inspector-egui` | 0.19.0 | Runtime debug inspector (disabled in main) |
-| `rand` | 0.8.5 | RNG for spawn positions, rotation speeds |
+### New asteroid/enemy type
+1. Add a component and spawn function in `src/objects/`.
+2. Tag with `CleanUpOnLevelEnd` for level cleanup.
+3. Handle in `src/common/collision.rs`.
+4. Include in the level-complete check if it should block progression.
 
 ---
 
-## Known Incomplete / Placeholder Areas
+## Web Hosting Notes
 
-| Area | Status |
-|------|--------|
-| `src/background.rs` | Empty file, no background rendering |
-| `src/utils/object_pool.rs` | Object pool struct defined, not used |
-| `src/utils/setup.rs` | Empty utility stubs |
-| `src/effects/effects.rs` | bevy_hanabi particle systems commented out |
-| `Menu` state | No UI or logic implemented |
-| `Progression` state | Defined but empty |
-| Audio | No sound system present |
-| Tests | No unit or integration tests |
+```bash
+# Build WASM release
+trunk build --release      # outputs to ./dist/
 
----
+# Serve locally
+trunk serve
 
-## Testing
+# Deploy: copy ./dist/ to any static host (GitHub Pages, Cloudflare Pages, Netlify, etc.)
+```
 
-There are currently no automated tests. Debug workflows:
+The `index.html` at the repo root is the trunk entry point. It references a
+`<canvas id="bevy">` element that Bevy attaches to via `Window::canvas`.
 
-- `bevy-inspector-egui` can be re-enabled in `main.rs` to inspect ECS state at runtime.
-- Key events (spawn, death, state changes) log via `println!` / `info!`.
-- Collision damage values are printed to stdout on hit.
-
-When adding tests in the future, place unit tests in `#[cfg(test)]` modules at the bottom of the relevant file, and integration tests in `tests/`.
+To install trunk:
+```bash
+cargo install trunk
+rustup target add wasm32-unknown-unknown
+```
 
 ---
 
 ## Common Pitfalls
 
-- **Single-player query**: Systems that touch the player use `query.get_single_mut()`. Guard with `if let Ok(...) = ...` to avoid panics when the player is absent (e.g. during `EndGame`).
-- **State-gated systems**: Systems that should only run in `InGame` must use `.run_if(in_state(GameStates::InGame))`. Forgetting this causes systems to run in wrong states.
-- **Asset paths**: All asset paths are relative to the `assets/` directory (Bevy convention). The `assets/` folder must be present next to the binary at runtime.
-- **Cleanup**: Any spawned entity that should not persist across game loops must have `CleanUpEndGame` inserted at spawn time.
+- **Single-player query**: Use `query.get_single_mut()` and guard with `if let Ok(...)`.
+  The player is absent during `GameOver` (physics components removed).
+- **State-gated systems**: Systems that should only run in `InGame` need
+  `.run_if(in_state(GameStates::InGame))`.
+- **Level-complete race**: The guard `level.total_asteroids_spawned > 0` prevents
+  a spurious level-complete trigger on the first frame before asteroids spawn.
+- **Command flushing**: `OnEnter(StartGame)` uses `.chain()` + `apply_deferred`
+  so the old player entity is fully despawned before the new one spawns.
+- **Upgrade eligibility**: Always call `UpgradeType::is_eligible()` before showing
+  an upgrade card. `generate_choices()` does this automatically.
+- **WASM**: Do not add `bevy/dynamic_linking` to default features — it breaks WASM.
+  Use `--features dev` for fast native builds only.
+- **Asset paths**: All paths are relative to `assets/` (Bevy convention).
+  The `assets/` folder must sit next to the binary at runtime.
