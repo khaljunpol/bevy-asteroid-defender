@@ -70,7 +70,10 @@ fn player_projectile_hit_meteor_system(
         let proj_scale = proj_tf.scale.xy();
 
         for (meteor_e, meteor_tf, meteor_hit, mut meteor) in meteor_q.iter_mut() {
-            if despawned_meteors.contains(&meteor_e) || despawned_projectiles.contains(&proj_e) {
+            if despawned_meteors.contains(&meteor_e)
+                || despawned_projectiles.contains(&proj_e)
+                || projectile.hit_meteors.contains(&meteor_e)
+            {
                 continue;
             }
 
@@ -138,7 +141,10 @@ fn player_projectile_hit_meteor_system(
                 ));
             }
 
-            // Pierce: if pierce remaining, consume one pierce charge instead of despawning.
+            // Record this meteor so the bullet can't re-collide with it on future frames.
+            projectile.hit_meteors.push(meteor_e);
+
+            // Pierce: if pierce remaining, consume one charge instead of despawning.
             if projectile.pierce_remaining > 0 {
                 projectile.pierce_remaining -= 1;
             } else if !despawned_projectiles.contains(&proj_e) {

@@ -23,6 +23,8 @@ pub struct ProjectileComponent {
     pub max_range:       f32,
     /// How many additional hits this projectile can pierce through (0 = normal).
     pub pierce_remaining: i32,
+    /// Entities already hit by this projectile — prevents re-collision across frames.
+    pub hit_meteors:     Vec<Entity>,
 }
 
 /// Tiny shrapnel spawned by Explosive Rounds on asteroid kill.
@@ -209,6 +211,7 @@ pub fn projectile_shoot_system(
                     origin: position.0,
                     max_range: proj_range,
                     pierce_remaining: pierce,
+                    hit_meteors: Vec::new(),
                 })
                 .insert(ProjectileDespawnComponent::default())
                 .insert(HitBoxSize(PROJECTILE_SIZE))
@@ -272,6 +275,7 @@ pub fn spawn_shrapnel(
                 origin,
                 max_range:       140.0,
                 pierce_remaining: 0,
+                hit_meteors:     Vec::new(),
             },
             ProjectileDespawnComponent::default(),
             HitBoxSize(Vec2::new(6.0, 20.0)),
