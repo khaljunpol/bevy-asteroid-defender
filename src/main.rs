@@ -11,6 +11,7 @@ use resources::{
     PROJECTILE_NORMAL_SPRITE, PROJECTILE_ATTACK_SPRITE, PROJECTILE_SHIELD_SPRITE,
     LIFE_NORMAL_SPRITE, LIFE_ATTACK_SPRITE, LIFE_SHIELD_SPRITE,
     METEOR_BIG_SPRITE, METEOR_MED_SPRITE, METEOR_SML_SPRITE,
+    STAR1_SPRITE, STAR2_SPRITE, STAR3_SPRITE, SPEED_SPRITE, UFO_SPRITE,
 };
 use state::states::{
     GameStates, BaseStatePlugin, StartGameStatePlugin, CountdownStatePlugin,
@@ -22,6 +23,7 @@ mod player;
 mod objects;
 mod common;
 mod background;
+mod effects;
 mod resources;
 mod state;
 mod events;
@@ -64,9 +66,14 @@ fn main() {
         .add_plugins(objects::meteor::MeteorPlugin)
         .add_plugins(objects::projectile::ProjectilePlugin)
         .add_plugins(objects::powerup::PowerUpPlugin)
+        .add_plugins(objects::ufo::UfoPlugin)
         .add_plugins(events::events::EventsPlugin)
         .add_plugins(ui::ui::UIPlugin)
         .add_plugins(upgrades::upgrades::UpgradePlugin)
+        // Visual polish
+        .add_plugins(background::BackgroundPlugin)
+        .add_plugins(effects::particle::ParticlePlugin)
+        .add_plugins(effects::shake::CameraShakePlugin)
         // Startup
         .add_systems(PreStartup, startup_system);
 
@@ -119,6 +126,16 @@ fn startup_system(
         meteor_big:        asset_server.load(METEOR_BIG_SPRITE),
         meteor_med:        asset_server.load(METEOR_MED_SPRITE),
         meteor_sml:        asset_server.load(METEOR_SML_SPRITE),
+        // Effects
+        star1:             asset_server.load(STAR1_SPRITE),
+        star2:             asset_server.load(STAR2_SPRITE),
+        star3:             asset_server.load(STAR3_SPRITE),
+        fire_frames:       (0..20)
+                               .map(|i| asset_server.load(format!("sprites/effects/fire{i:02}.png")))
+                               .collect(),
+        speed:             asset_server.load(SPEED_SPRITE),
+        // Enemies
+        ufo:               asset_server.load(UFO_SPRITE),
     });
 
     // Persistent game state resources

@@ -5,14 +5,16 @@ use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens},
     Tween, Animator, Tracks,
 };
+use rand::{thread_rng, Rng};
 
 use lib::{PLAYER_ACCELERATION, PLAYER_DECELERATION, PLAYER_SIZE, ShipType};
 use crate::{
     common::common_components::{Velocity, RotationAngle, HitBoxSize, Position, BoundsWarpable},
+    effects::particle::ParticleComponent,
     objects::projectile::projectile_shoot_system,
     resources::{
         SHIP_NORMAL_SPRITE, SHIP_SHIELD_SPRITE, SHIP_ATTACK_SPRITE,
-        WindowSize, PlayerUpgrades,
+        GameSprites, WindowSize, PlayerUpgrades, Life,
     },
     state::states::GameStates,
     utils::cleanup::CleanUpOnGameOver,
@@ -40,6 +42,18 @@ impl Default for PlayerShootCooldownComponent {
     }
 }
 
+/// Flashes red when the player takes damage.
+#[derive(Component)]
+pub struct PlayerDamageFlash {
+    pub timer: Timer,
+}
+
+impl PlayerDamageFlash {
+    pub fn new() -> Self {
+        Self { timer: Timer::from_seconds(0.3, TimerMode::Once) }
+    }
+}
+
 // ── Plugin ────────────────────────────────────────────────────────────────────
 
 pub struct PlayerPlugin;
@@ -53,6 +67,11 @@ impl Plugin for PlayerPlugin {
                 (player_movement_system, projectile_shoot_system)
                     .run_if(in_state(GameStates::InGame)),
             )
+            .add_systems(
+                Update,
+                player_engine_trail_system.run_if(in_state(GameStates::InGame)),
+            )
+            .add_systems(Update, player_damage_flash_system)
             // GameOver – freeze the player by removing physics components
             .add_systems(OnEnter(GameStates::GameOver), player_on_death_system)
             // EndGame – fly the ship off the top of the screen
@@ -85,6 +104,84 @@ fn player_movement_system(
         } else {
             velocity.0 *= 1.0 - PLAYER_DECELERATION;
         }
+    }
+}
+
+fn player_damage_flash_system(
+    mut commands: Commands,
+    time:         Res<Time>,
+    mut query:    Query<(Entity, &mut Sprite, &mut PlayerDamageFlash), With<PlayerComponent>>,
+) {
+    for (entity, mut sprite, mut flash) in &mut query {
+        flash.timer.tick(time.delta());
+        let t = flash.timer.percent();
+        // Lerp from red (1,0,0) back toward white (1,1,1)
+        sprite.color = Color::rgb(1.0, t, t);
+        if flash.timer.just_finished() {
+            sprite.color = Color::WHITE;
+            commands.entity(entity).remove::<PlayerDamageFlash>();
+        }
+    }
+}
+
+fn player_engine_trail_system(
+    mut commands: Commands,
+    keyboard:     Res<Input<KeyCode>>,
+    game_sprites: Res<GameSprites>,
+    query:        Query<(&Position, &RotationAngle), With<PlayerComponent>>,
+) {
+    if !keyboard.pressed(KeyCode::Up) {
+        return;
+    }
+
+    let Ok((pos, angle)) = query.get_single() else { return };
+
+    let mut rng = thread_rng();
+
+    // Direction the ship faces (forward)
+    let forward = Vec2::new(
+        (angle.0 + PI / 2.0).cos(),
+        (angle.0 + PI / 2.0).sin(),
+    );
+    let backward = -forward;
+
+    for _ in 0..2 {
+        let offset_dist = rng.gen_range(18.0_f32..28.0);
+        let jitter_x    = rng.gen_range(-4.0_f32..4.0);
+        let jitter_y    = rng.gen_range(-4.0_f32..4.0);
+
+        let spawn_pos = Vec3::new(
+            pos.0.x + backward.x * offset_dist + jitter_x,
+            pos.0.y + backward.y * offset_dist + jitter_y,
+            3.0,
+        );
+
+        let trail_speed = rng.gen_range(30.0_f32..70.0);
+        let trail_vel   = backward * trail_speed + Vec2::new(jitter_x * 2.0, jitter_y * 2.0);
+        let lifetime    = rng.gen_range(0.10_f32..0.22);
+        let scale       = rng.gen_range(0.12_f32..0.30);
+
+        commands.spawn((
+            SpriteBundle {
+                texture: game_sprites.speed.clone(),
+                transform: Transform {
+                    translation: spawn_pos,
+                    scale: Vec3::splat(scale),
+                    ..default()
+                },
+                sprite: Sprite {
+                    color: Color::rgba(0.5, 0.8, 1.0, 0.85),
+                    ..default()
+                },
+                ..default()
+            },
+            ParticleComponent {
+                lifetime,
+                max_lifetime: lifetime,
+                velocity: trail_vel,
+            },
+            Name::new("Engine Trail"),
+        ));
     }
 }
 
@@ -124,11 +221,30 @@ pub fn player_spawn_system(
     mut commands:        Commands,
     asset_server:        Res<AssetServer>,
     wdw_size:            Res<WindowSize>,
+    mut upgrades:        ResMut<PlayerUpgrades>,
+    mut life:            ResMut<Life>,
     mut ev_player_spawn: EventWriter<crate::events::events::PlayerSpawnEvent>,
 ) {
     ev_player_spawn.send(crate::events::events::PlayerSpawnEvent);
 
     let ship = ShipComponent::new();
+
+    // Apply ship-type starting bonuses/penalties
+    match ship.ship_type {
+        ShipType::Attack => {
+            // Red ship: starts with Heavy Rounds level 1, but -1 max HP
+            upgrades.heavy_rounds = upgrades.heavy_rounds.max(1);
+            life.max_life     = (life.max_life - 1).max(1);
+            life.current_life = life.max_life;
+        }
+        ShipType::Shield => {
+            // Green ship: +2 max HP, but slightly slower
+            life.max_life     += 2;
+            life.current_life  = life.max_life;
+            upgrades.shield_speed_penalty = true;
+        }
+        ShipType::Normal => {}
+    }
 
     let sprite = match ship.ship_type {
         ShipType::Attack => asset_server.load(SHIP_ATTACK_SPRITE),

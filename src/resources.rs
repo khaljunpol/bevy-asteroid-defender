@@ -27,10 +27,16 @@ pub const METEOR_BIG_SPRITE: &str = "sprites/meteor/meteorGrey_big1.png";
 pub const METEOR_MED_SPRITE: &str = "sprites/meteor/meteorGrey_med1.png";
 pub const METEOR_SML_SPRITE: &str = "sprites/meteor/meteorGrey_small1.png";
 
+pub const STAR1_SPRITE: &str = "sprites/effects/star1.png";
+pub const STAR2_SPRITE: &str = "sprites/effects/star2.png";
+pub const STAR3_SPRITE: &str = "sprites/effects/star3.png";
+pub const SPEED_SPRITE: &str = "sprites/effects/speed.png";
+pub const UFO_SPRITE:   &str = "sprites/ufo/ufoRed.png";
+
 // ── Preloaded sprite handles ──────────────────────────────────────────────────
 #[derive(Resource)]
 pub struct GameSprites {
-    pub ship_type_normal: Handle<Image>,
+    pub ship_type_normal:  Handle<Image>,
     pub ship_type_attack:  Handle<Image>,
     pub ship_type_shield:  Handle<Image>,
     pub powerup_hp:        Handle<Image>,
@@ -43,6 +49,26 @@ pub struct GameSprites {
     pub meteor_big:        Handle<Image>,
     pub meteor_med:        Handle<Image>,
     pub meteor_sml:        Handle<Image>,
+    // Effects
+    pub star1:             Handle<Image>,
+    pub star2:             Handle<Image>,
+    pub star3:             Handle<Image>,
+    pub fire_frames:       Vec<Handle<Image>>,
+    pub speed:             Handle<Image>,
+    // Enemies
+    pub ufo:               Handle<Image>,
+}
+
+// ── Camera shake ─────────────────────────────────────────────────────────────
+#[derive(Resource, Default)]
+pub struct CameraShake {
+    pub intensity: f32,
+}
+
+impl CameraShake {
+    pub fn trigger(&mut self, intensity: f32) {
+        self.intensity = (self.intensity + intensity).min(20.0);
+    }
 }
 
 // ── Window helpers ────────────────────────────────────────────────────────────
@@ -187,6 +213,8 @@ pub struct PlayerUpgrades {
     // Runtime (not an upgrade, managed by systems)
     pub chain_active:   bool,
     pub chain_timer:    f32,
+    // Ship-type bonuses applied at spawn
+    pub shield_speed_penalty: bool,
 }
 
 impl PlayerUpgrades {
@@ -201,7 +229,8 @@ impl PlayerUpgrades {
     }
 
     pub fn effective_max_speed(&self) -> f32 {
-        PLAYER_MAX_SPEED * (1.0 + self.afterburner as f32 * AFTERBURNER_SPEED_BONUS_PER_LEVEL)
+        let base = if self.shield_speed_penalty { PLAYER_MAX_SPEED * 0.85 } else { PLAYER_MAX_SPEED };
+        base * (1.0 + self.afterburner as f32 * AFTERBURNER_SPEED_BONUS_PER_LEVEL)
     }
 
     pub fn effective_turn_speed(&self) -> f32 {

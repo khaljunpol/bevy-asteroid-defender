@@ -166,15 +166,16 @@ fn meteor_hit_flash_system(
     }
 }
 
-/// Transitions to LevelComplete when no meteors remain.
+/// Transitions to LevelComplete when no meteors or UFOs remain.
 /// The guard on `total_asteroids_spawned` prevents a false trigger on the
 /// very first frame before asteroids have been fully spawned.
 fn check_level_complete_system(
     level:          Res<LevelResource>,
     meteor_query:   Query<&MeteorComponent>,
+    ufo_query:      Query<&crate::objects::ufo::UfoComponent>,
     mut next_state: ResMut<NextState<GameStates>>,
 ) {
-    if level.total_asteroids_spawned > 0 && meteor_query.is_empty() {
+    if level.total_asteroids_spawned > 0 && meteor_query.is_empty() && ufo_query.is_empty() {
         next_state.set(GameStates::LevelComplete);
     }
 }

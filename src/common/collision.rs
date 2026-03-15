@@ -6,14 +6,16 @@ use lib::{meteor_score, MeteorSizeType};
 
 use crate::{
     common::common_components::{HitBoxSize, CollisionDespawnableWithDamage, DamageCollision, MeteorSplitEvent},
+    effects::particle::spawn_explosion,
     events::events::PlayerDeadEvent,
     objects::{
         meteor::{MeteorComponent, spawn_meteor, MeteorHitFlash},
-        projectile::{ProjectileComponent, ProjectileDespawnComponent},
+        projectile::ProjectileComponent,
         powerup::PowerUpComponent,
+        ufo::{UfoComponent, UfoHitFlash, UfoProjectileComponent},
     },
-    player::player::PlayerComponent,
-    resources::{GameSprites, Life, PlayerUpgrades, Score},
+    player::player::{PlayerComponent, PlayerDamageFlash},
+    resources::{CameraShake, GameSprites, Life, PlayerUpgrades, Score},
     state::states::GameStates,
 };
 
@@ -25,8 +27,10 @@ impl Plugin for CollisionPlugin {
             Update,
             (
                 player_projectile_hit_meteor_system,
+                player_projectile_hit_ufo_system,
                 meteor_split_system,
                 player_hit_by_meteor_system,
+                player_hit_by_ufo_projectile_system,
                 apply_damage_system,
                 player_collect_powerup_system,
             )
@@ -39,7 +43,9 @@ impl Plugin for CollisionPlugin {
 
 fn player_projectile_hit_meteor_system(
     mut commands:  Commands,
-    projectile_q:  Query<(Entity, &Transform, &HitBoxSize, &ProjectileComponent)>,
+    game_sprites:  Res<GameSprites>,
+    mut shake:     ResMut<CameraShake>,
+    projectile_q:  Query<(Entity, &Transform, &HitBoxSize, &ProjectileComponent), Without<UfoProjectileComponent>>,
     mut meteor_q:  Query<(Entity, &Transform, &HitBoxSize, &mut MeteorComponent)>,
     mut score:     ResMut<Score>,
     mut upgrades:  ResMut<PlayerUpgrades>,
@@ -75,10 +81,22 @@ fn player_projectile_hit_meteor_system(
 
             if meteor.health <= 0 {
                 // Destroyed – despawn and schedule fragment spawn.
+                let meteor_pos  = meteor_tf.translation;
+                let meteor_size = meteor.size;
                 commands.entity(meteor_e).despawn();
                 despawned_meteors.insert(meteor_e);
 
-                score.current += meteor_score(meteor.size);
+                score.current += meteor_score(meteor_size);
+
+                // Screen shake – bigger for large asteroids
+                if meteor_size == MeteorSizeType::Large {
+                    shake.trigger(4.0);
+                } else {
+                    shake.trigger(1.5);
+                }
+
+                // Explosion particles
+                spawn_explosion(&mut commands, &game_sprites, meteor_pos, meteor_size);
 
                 // Activate chain reaction burst if the player has that upgrade.
                 crate::objects::projectile::trigger_chain_reaction(&mut upgrades);
@@ -86,8 +104,8 @@ fn player_projectile_hit_meteor_system(
                 // Emit a split event so fragment spawning doesn't need GameSprites here.
                 commands.spawn((
                     MeteorSplitEvent {
-                        size:        meteor.size as i32,
-                        translation: meteor_tf.translation,
+                        size:        meteor_size as i32,
+                        translation: meteor_pos,
                     },
                     Name::new("MeteorSplitEvent"),
                 ));
@@ -98,7 +116,65 @@ fn player_projectile_hit_meteor_system(
                 ));
             }
 
-            // Consume the projectile unless it has ricochet (handled by projectile module).
+            // Consume the projectile.
+            if !despawned_projectiles.contains(&proj_e) {
+                commands.entity(proj_e).despawn();
+                despawned_projectiles.insert(proj_e);
+            }
+        }
+    }
+}
+
+// ── Projectile → UFO ─────────────────────────────────────────────────────────
+
+fn player_projectile_hit_ufo_system(
+    mut commands:  Commands,
+    game_sprites:  Res<GameSprites>,
+    mut shake:     ResMut<CameraShake>,
+    projectile_q:  Query<(Entity, &Transform, &HitBoxSize, &ProjectileComponent), Without<UfoProjectileComponent>>,
+    mut ufo_q:     Query<(Entity, &Transform, &HitBoxSize, &mut UfoComponent)>,
+    mut score:     ResMut<Score>,
+) {
+    let mut despawned_projectiles: HashSet<Entity> = HashSet::new();
+    let mut despawned_ufos:        HashSet<Entity> = HashSet::new();
+
+    for (proj_e, proj_tf, proj_hit, projectile) in &projectile_q {
+        if despawned_projectiles.contains(&proj_e) {
+            continue;
+        }
+
+        let proj_scale = proj_tf.scale.xy();
+
+        for (ufo_e, ufo_tf, ufo_hit, mut ufo) in ufo_q.iter_mut() {
+            if despawned_ufos.contains(&ufo_e) || despawned_projectiles.contains(&proj_e) {
+                continue;
+            }
+
+            let hit = collide(
+                proj_tf.translation, proj_hit.0 * proj_scale,
+                ufo_tf.translation,  ufo_hit.0 * ufo_tf.scale.xy(),
+            );
+
+            if hit.is_none() {
+                continue;
+            }
+
+            ufo.hp -= projectile.damage;
+
+            if ufo.hp <= 0 {
+                let ufo_pos = ufo_tf.translation;
+                commands.entity(ufo_e).despawn();
+                despawned_ufos.insert(ufo_e);
+
+                score.current += 150;
+                shake.trigger(3.0);
+                spawn_explosion(&mut commands, &game_sprites, ufo_pos, MeteorSizeType::Large);
+            } else {
+                commands.entity(ufo_e).insert(UfoHitFlash(
+                    Timer::from_seconds(0.15, TimerMode::Once),
+                ));
+            }
+
             if !despawned_projectiles.contains(&proj_e) {
                 commands.entity(proj_e).despawn();
                 despawned_projectiles.insert(proj_e);
@@ -162,12 +238,13 @@ fn meteor_split_system(
 
 fn player_hit_by_meteor_system(
     mut commands:  Commands,
-    player_q:      Query<(&Transform, &HitBoxSize), With<PlayerComponent>>,
+    mut shake:     ResMut<CameraShake>,
+    player_q:      Query<(Entity, &Transform, &HitBoxSize), With<PlayerComponent>>,
     meteor_q:      Query<(Entity, &Transform, &HitBoxSize, &CollisionDespawnableWithDamage), With<MeteorComponent>>,
 ) {
     let mut despawned: HashSet<Entity> = HashSet::new();
 
-    for (player_tf, player_hit) in &player_q {
+    for (player_e, player_tf, player_hit) in &player_q {
         let player_scale = player_tf.scale.xy();
 
         for (meteor_e, meteor_tf, meteor_hit, damageable) in &meteor_q {
@@ -190,11 +267,53 @@ fn player_hit_by_meteor_system(
             despawned.insert(meteor_e);
 
             if damageable.should_damage {
+                shake.trigger(8.0);
+                commands.entity(player_e).insert(PlayerDamageFlash::new());
                 commands.spawn((
                     DamageCollision(damageable.damage),
                     Name::new("ContactDamage"),
                 ));
             }
+        }
+    }
+}
+
+// ── Player ← UFO projectile ───────────────────────────────────────────────────
+
+fn player_hit_by_ufo_projectile_system(
+    mut commands: Commands,
+    mut shake:    ResMut<CameraShake>,
+    player_q:     Query<(Entity, &Transform, &HitBoxSize), With<PlayerComponent>>,
+    proj_q:       Query<(Entity, &Transform, &HitBoxSize), With<UfoProjectileComponent>>,
+) {
+    let mut despawned: HashSet<Entity> = HashSet::new();
+
+    for (player_e, player_tf, player_hit) in &player_q {
+        let player_scale = player_tf.scale.xy();
+
+        for (proj_e, proj_tf, proj_hit) in &proj_q {
+            if despawned.contains(&proj_e) {
+                continue;
+            }
+
+            let hit = collide(
+                player_tf.translation, player_hit.0 * player_scale,
+                proj_tf.translation,   proj_hit.0 * proj_tf.scale.xy(),
+            );
+
+            if hit.is_none() {
+                continue;
+            }
+
+            commands.entity(proj_e).despawn();
+            despawned.insert(proj_e);
+
+            shake.trigger(6.0);
+            commands.entity(player_e).insert(PlayerDamageFlash::new());
+            commands.spawn((
+                DamageCollision(1),
+                Name::new("UfoProjectileDamage"),
+            ));
         }
     }
 }
