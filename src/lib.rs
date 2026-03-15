@@ -44,7 +44,7 @@ pub const METEOR_SCORE: [(MeteorSizeType, i32); 3] = [
 
 // ── Level scaling ────────────────────────────────────────────────────────────
 /// Asteroids spawned on level 1.
-pub const BASE_LEVEL_ASTEROID_COUNT: u32 = 3;
+pub const BASE_LEVEL_ASTEROID_COUNT: u32 = 4;
 /// Extra large asteroid added per level (on top of base).
 pub const ASTEROID_COUNT_PER_LEVEL: u32 = 1;
 /// Hard cap on asteroids per level so the screen doesn't overflow.
@@ -52,7 +52,7 @@ pub const MAX_ASTEROIDS_PER_LEVEL: u32 = 12;
 /// Base HP for large asteroids spawned at the start of a level.
 pub const BASE_ASTEROID_HP: i32 = 1;
 /// Every this many levels, large asteroids gain +1 HP.
-pub const ASTEROID_HP_SCALING_INTERVAL: u32 = 3;
+pub const ASTEROID_HP_SCALING_INTERVAL: u32 = 2;
 
 // ── Countdown ────────────────────────────────────────────────────────────────
 /// Duration of each numeric tick (3 → 2 → 1).
@@ -82,6 +82,32 @@ pub const CHAIN_REACTION_DURATION: f32 = 3.0;
 pub const CHAIN_REACTION_COOLDOWN_MULT: f32 = 0.35;
 /// Speed at which Asteroid Magnet drifts powerups toward the player.
 pub const MAGNET_STRENGTH: f32 = 0.012;
+
+// ── New upgrade scaling ───────────────────────────────────────────────────────
+pub const ACCELERATOR_SPEED_BONUS:     f32 = 0.28;
+pub const ACCELERATOR_RANGE_PENALTY:   f32 = 0.18;
+pub const LONG_SHOT_RANGE_BONUS:       f32 = 0.35;
+pub const LONG_SHOT_SPEED_PENALTY:     f32 = 0.10;
+pub const PIERCING_ROUNDS_SPEED_PENALTY: f32 = 0.12;
+pub const GLASS_CANNON_COOLDOWN_MULT:  f32 = 1.50;
+pub const BULWARK_HEAL_CHANCE:         f32 = 0.35;
+/// Detonator Rounds cuts bullet range to this fraction of normal so explosions
+/// reliably happen within the visible play area.
+pub const DETONATOR_RANGE_MULT:        f32 = 0.45;
+
+// ── Per-ship projectile stats ─────────────────────────────────────────────────
+pub const ATTACK_SHIP_PROJ_SPEED_MULT: f32 = 1.45;
+pub const ATTACK_SHIP_COOLDOWN_MULT:   f32 = 0.80;
+pub const ATTACK_SHIP_RANGE_MULT:      f32 = 0.65;
+pub const SHIELD_SHIP_PROJ_SPEED_MULT: f32 = 0.80;
+pub const SHIELD_SHIP_COOLDOWN_MULT:   f32 = 1.30;
+pub const SHIELD_SHIP_RANGE_MULT:      f32 = 1.60;
+/// Base projectile travel range in world units before despawn.
+/// Screen is 720px tall; 850 ≈ just over one full screen-height.
+/// Attack ship (×0.65) → ~550px   Normal → ~850px   Shield (×1.60) → ~1360px
+pub const PROJECTILE_BASE_RANGE:       f32 = 850.0;
+/// Bolt powerup: multiplies projectile speed (not movement speed).
+pub const BOLT_PROJ_SPEED_MULT:        f32 = 1.65;
 
 // ── Ship types ───────────────────────────────────────────────────────────────
 pub const DEFAULT_STATS: [(ShipType, Stats); 3] = [

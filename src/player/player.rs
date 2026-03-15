@@ -14,7 +14,7 @@ use crate::{
     objects::projectile::projectile_shoot_system,
     resources::{
         SHIP_NORMAL_SPRITE, SHIP_SHIELD_SPRITE, SHIP_ATTACK_SPRITE,
-        GameSprites, WindowSize, PlayerUpgrades, Life,
+        GameSprites, WindowSize, PlayerUpgrades, Life, ShipSelectState, PlayerBuff,
     },
     state::states::GameStates,
     utils::cleanup::CleanUpOnGameOver,
@@ -54,6 +54,12 @@ impl PlayerDamageFlash {
     }
 }
 
+/// Marks the shield visual effect entity that orbits the player.
+#[derive(Component)]
+pub struct ShieldEffectComponent {
+    pub angle: f32,
+}
+
 // ── Plugin ────────────────────────────────────────────────────────────────────
 
 pub struct PlayerPlugin;
@@ -72,6 +78,7 @@ impl Plugin for PlayerPlugin {
                 player_engine_trail_system.run_if(in_state(GameStates::InGame)),
             )
             .add_systems(Update, player_damage_flash_system)
+            .add_systems(Update, shield_effect_system)
             // GameOver – freeze the player by removing physics components
             .add_systems(OnEnter(GameStates::GameOver), player_on_death_system)
             // EndGame – fly the ship off the top of the screen
@@ -124,6 +131,65 @@ fn player_damage_flash_system(
     }
 }
 
+/// Spawns/despawns a rotating shield ring around the player when the shield buff is active.
+fn shield_effect_system(
+    mut commands:  Commands,
+    game_sprites:  Res<GameSprites>,
+    buff:          Res<PlayerBuff>,
+    time:          Res<Time>,
+    player_q:      Query<&Position, With<PlayerComponent>>,
+    mut effect_q:  Query<(Entity, &mut Transform, &mut ShieldEffectComponent, &mut Sprite)>,
+) {
+    let shield_active = buff.shield_timer > 0.0;
+
+    // Update or despawn existing effect.
+    for (entity, mut tf, mut eff, mut sprite) in effect_q.iter_mut() {
+        if !shield_active {
+            commands.entity(entity).despawn();
+            continue;
+        }
+        // Rotate slowly around the player.
+        eff.angle += time.delta_seconds() * 1.8;
+
+        if let Ok(pos) = player_q.get_single() {
+            tf.translation.x = pos.0.x;
+            tf.translation.y = pos.0.y;
+            tf.rotation = Quat::from_rotation_z(eff.angle);
+        }
+
+        // Pulse alpha based on remaining time (flicker when about to expire).
+        let alpha = if buff.shield_timer < 1.5 {
+            (buff.shield_timer * 6.0 * std::f32::consts::PI).sin().abs().max(0.1)
+        } else {
+            0.75
+        };
+        sprite.color = Color::rgba(0.3, 0.6, 1.0, alpha);
+    }
+
+    // Spawn effect if shield just became active and no effect entity exists yet.
+    if shield_active && effect_q.is_empty() {
+        if let Ok(pos) = player_q.get_single() {
+            commands.spawn((
+                SpriteBundle {
+                    texture: game_sprites.shield_effect.clone(),
+                    transform: Transform {
+                        translation: Vec3::new(pos.0.x, pos.0.y, 3.5),
+                        scale: Vec3::splat(0.65),
+                        ..default()
+                    },
+                    sprite: Sprite {
+                        color: Color::rgba(0.3, 0.6, 1.0, 0.75),
+                        ..default()
+                    },
+                    ..default()
+                },
+                ShieldEffectComponent { angle: 0.0 },
+                Name::new("Shield Effect"),
+            ));
+        }
+    }
+}
+
 fn player_engine_trail_system(
     mut commands: Commands,
     keyboard:     Res<Input<KeyCode>>,
@@ -161,12 +227,16 @@ fn player_engine_trail_system(
         let lifetime    = rng.gen_range(0.10_f32..0.22);
         let scale       = rng.gen_range(0.12_f32..0.30);
 
+        // Rotate sprite to face the direction of travel (sprite faces up by default).
+        let sprite_angle = trail_vel.y.atan2(trail_vel.x) - PI / 2.0;
+
         commands.spawn((
             SpriteBundle {
                 texture: game_sprites.speed.clone(),
                 transform: Transform {
                     translation: spawn_pos,
                     scale: Vec3::splat(scale),
+                    rotation: Quat::from_rotation_z(sprite_angle),
                     ..default()
                 },
                 sprite: Sprite {
@@ -223,11 +293,12 @@ pub fn player_spawn_system(
     wdw_size:            Res<WindowSize>,
     mut upgrades:        ResMut<PlayerUpgrades>,
     mut life:            ResMut<Life>,
+    selected:            Res<ShipSelectState>,
     mut ev_player_spawn: EventWriter<crate::events::events::PlayerSpawnEvent>,
 ) {
     ev_player_spawn.send(crate::events::events::PlayerSpawnEvent);
 
-    let ship = ShipComponent::new();
+    let ship = ShipComponent::new_type(selected.ship_type());
 
     // Apply ship-type starting bonuses/penalties
     match ship.ship_type {

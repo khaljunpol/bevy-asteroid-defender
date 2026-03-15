@@ -28,6 +28,10 @@ pub struct MeteorComponent {
 #[derive(Component)]
 pub struct MeteorHitFlash(pub Timer);
 
+/// Stores the base tint color of the meteor so the flash can restore it.
+#[derive(Component)]
+pub struct MeteorBaseColor(pub Color);
+
 // ── Plugin ────────────────────────────────────────────────────────────────────
 
 pub struct MeteorPlugin;
@@ -70,11 +74,12 @@ pub fn spawn_level_asteroids(
         let rotation_speed = rng.gen_range(-0.03_f32..0.03);
         let base_velocity  = get_angle_to_target(center, position);
 
-        // Slow down asteroids if the player has Overclock.
+        // Speed scales with level (+8% per level, capped at 2.0x)
+        let speed_scale = (1.0 + (level.current as f32 - 1.0) * 0.08).min(2.0);
         let velocity = if upgrades.overclock {
             base_velocity * lib::OVERCLOCK_SPEED_MULT
         } else {
-            base_velocity
+            base_velocity * speed_scale
         };
 
         spawn_meteor(
@@ -94,6 +99,15 @@ pub fn spawn_level_asteroids(
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+fn hp_color(hp: i32) -> Color {
+    match hp {
+        1 => Color::WHITE,
+        2 => Color::rgb(1.0, 0.88, 0.4),   // gold
+        3 => Color::rgb(1.0, 0.55, 0.2),   // orange
+        _ => Color::rgb(1.0, 0.25, 0.25),  // red (4+ HP)
+    }
+}
 
 /// Spawns a single meteor entity.
 /// `hp` is only meaningful for Large meteors at level start; fragment children
@@ -115,6 +129,8 @@ pub fn spawn_meteor(
         MeteorSizeType::Small  => ("Meteor Small",  game_sprites.meteor_sml.clone()),
     };
 
+    let base_color = hp_color(hp);
+
     commands
         .spawn(SpriteBundle {
             texture: sprite,
@@ -122,6 +138,10 @@ pub fn spawn_meteor(
                 translation: spawn_position,
                 rotation:    Quat::from_rotation_z(rotation),
                 scale:       Vec3::ONE,
+                ..default()
+            },
+            sprite: Sprite {
+                color: base_color,
                 ..default()
             },
             ..default()
@@ -132,6 +152,7 @@ pub fn spawn_meteor(
             rotation_speed,
             health: hp,
         })
+        .insert(MeteorBaseColor(base_color))
         .insert(HitBoxSize(meteor_size(size)))
         .insert(Velocity(velocity))
         .insert(Position(position))
@@ -152,15 +173,20 @@ fn meteor_rotation_system(mut query: Query<(&MeteorComponent, &mut RotationAngle
 fn meteor_hit_flash_system(
     mut commands: Commands,
     time:         Res<Time>,
-    mut query:    Query<(Entity, &mut Sprite, &mut MeteorHitFlash)>,
+    mut query:    Query<(Entity, &mut Sprite, &mut MeteorHitFlash, &MeteorBaseColor)>,
 ) {
-    for (entity, mut sprite, mut flash) in &mut query {
+    for (entity, mut sprite, mut flash, base_color) in &mut query {
         flash.0.tick(time.delta());
-        // Lerp back to full white (normal) as the timer expires.
         let t = flash.0.percent();
-        sprite.color = Color::rgb(1.0, 1.0 - t * 0.6, 1.0 - t * 0.6);
+        // Lerp from white back to base color as t goes 0→1
+        let [br, bg, bb, _] = base_color.0.as_rgba_f32();
+        sprite.color = Color::rgb(
+            1.0 - t * (1.0 - br),
+            1.0 - t * (1.0 - bg),
+            1.0 - t * (1.0 - bb),
+        );
         if flash.0.just_finished() {
-            sprite.color = Color::WHITE;
+            sprite.color = base_color.0;
             commands.entity(entity).remove::<MeteorHitFlash>();
         }
     }

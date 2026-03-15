@@ -60,16 +60,10 @@ pub fn spawn_explosion(
         let vel      = Vec2::new(angle.cos() * speed, angle.sin() * speed);
         let lifetime = rng.gen_range(lifetime_min..lifetime_max);
 
-        let texture: Handle<Image> = match size {
-            MeteorSizeType::Large => {
-                let idx = rng.gen_range(1_usize..20);
-                game_sprites.fire_frames[idx].clone()
-            }
-            _ => match rng.gen_range(0_u8..3) {
-                0 => game_sprites.star1.clone(),
-                1 => game_sprites.star2.clone(),
-                _ => game_sprites.star3.clone(),
-            },
+        let texture: Handle<Image> = match rng.gen_range(0_u8..3) {
+            0 => game_sprites.star1.clone(),
+            1 => game_sprites.star2.clone(),
+            _ => game_sprites.star3.clone(),
         };
 
         let scale = rng.gen_range(0.15_f32..0.45);

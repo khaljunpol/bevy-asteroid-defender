@@ -2,7 +2,7 @@ use bevy::{prelude::*, sprite::collide_aabb::collide, math::Vec3Swizzles};
 use std::collections::HashSet;
 use rand::{thread_rng, Rng};
 
-use lib::{meteor_score, MeteorSizeType};
+use lib::{meteor_score, MeteorSizeType, BULWARK_HEAL_CHANCE};
 
 use crate::{
     common::common_components::{HitBoxSize, CollisionDespawnableWithDamage, DamageCollision, MeteorSplitEvent},
@@ -10,12 +10,15 @@ use crate::{
     events::events::PlayerDeadEvent,
     objects::{
         meteor::{MeteorComponent, spawn_meteor, MeteorHitFlash},
-        projectile::ProjectileComponent,
+        projectile::{ProjectileComponent, spawn_shrapnel},
         powerup::PowerUpComponent,
         ufo::{UfoComponent, UfoHitFlash, UfoProjectileComponent},
     },
-    player::player::{PlayerComponent, PlayerDamageFlash},
-    resources::{CameraShake, GameSprites, Life, PlayerUpgrades, Score},
+    player::{
+        player::{PlayerComponent, PlayerDamageFlash},
+        ship::ShipComponent,
+    },
+    resources::{CameraShake, GameSprites, IsPaused, Life, PlayerBuff, PlayerUpgrades, Score},
     state::states::GameStates,
 };
 
@@ -34,7 +37,8 @@ impl Plugin for CollisionPlugin {
                 apply_damage_system,
                 player_collect_powerup_system,
             )
-                .run_if(in_state(GameStates::InGame)),
+                .run_if(in_state(GameStates::InGame))
+                .run_if(|p: Res<IsPaused>| !p.0),
         );
     }
 }
@@ -42,18 +46,23 @@ impl Plugin for CollisionPlugin {
 // ── Projectile → Meteor ───────────────────────────────────────────────────────
 
 fn player_projectile_hit_meteor_system(
-    mut commands:  Commands,
-    game_sprites:  Res<GameSprites>,
-    mut shake:     ResMut<CameraShake>,
-    projectile_q:  Query<(Entity, &Transform, &HitBoxSize, &ProjectileComponent), Without<UfoProjectileComponent>>,
-    mut meteor_q:  Query<(Entity, &Transform, &HitBoxSize, &mut MeteorComponent)>,
-    mut score:     ResMut<Score>,
-    mut upgrades:  ResMut<PlayerUpgrades>,
+    mut commands:     Commands,
+    game_sprites:     Res<GameSprites>,
+    mut shake:        ResMut<CameraShake>,
+    mut projectile_q: Query<(Entity, &Transform, &HitBoxSize, &mut ProjectileComponent), Without<UfoProjectileComponent>>,
+    mut meteor_q:     Query<(Entity, &Transform, &HitBoxSize, &mut MeteorComponent)>,
+    mut score:        ResMut<Score>,
+    mut upgrades:     ResMut<PlayerUpgrades>,
+    mut life:         ResMut<Life>,
+    ship_q:           Query<&ShipComponent, With<PlayerComponent>>,
 ) {
+    let ship_type = ship_q.get_single().map(|s| s.ship_type).unwrap_or(lib::ShipType::Normal);
+    let mut rng = thread_rng();
+
     let mut despawned_projectiles: HashSet<Entity> = HashSet::new();
     let mut despawned_meteors:     HashSet<Entity> = HashSet::new();
 
-    for (proj_e, proj_tf, proj_hit, projectile) in &projectile_q {
+    for (proj_e, proj_tf, proj_hit, mut projectile) in projectile_q.iter_mut() {
         if despawned_projectiles.contains(&proj_e) {
             continue;
         }
@@ -88,15 +97,28 @@ fn player_projectile_hit_meteor_system(
 
                 score.current += meteor_score(meteor_size);
 
-                // Screen shake – bigger for large asteroids
+                // Screen shake – bigger for large asteroids.
                 if meteor_size == MeteorSizeType::Large {
                     shake.trigger(4.0);
                 } else {
                     shake.trigger(1.5);
                 }
 
-                // Explosion particles
+                // Explosion particles.
                 spawn_explosion(&mut commands, &game_sprites, meteor_pos, meteor_size);
+
+                // Explosive Rounds: scatter shrapnel on large asteroid kills only.
+                // (Limiting to Large prevents chain-kills on split children.)
+                if upgrades.explosive_rounds && meteor_size == MeteorSizeType::Large {
+                    spawn_shrapnel(&mut commands, &game_sprites, meteor_pos.xy(), ship_type);
+                }
+
+                // Bulwark: 35% chance to heal 1 HP on large asteroid kill.
+                if upgrades.bulwark && meteor_size == MeteorSizeType::Large {
+                    if rng.gen::<f32>() < BULWARK_HEAL_CHANCE {
+                        life.current_life = (life.current_life + 1).min(life.max_life);
+                    }
+                }
 
                 // Activate chain reaction burst if the player has that upgrade.
                 crate::objects::projectile::trigger_chain_reaction(&mut upgrades);
@@ -116,8 +138,10 @@ fn player_projectile_hit_meteor_system(
                 ));
             }
 
-            // Consume the projectile.
-            if !despawned_projectiles.contains(&proj_e) {
+            // Pierce: if pierce remaining, consume one pierce charge instead of despawning.
+            if projectile.pierce_remaining > 0 {
+                projectile.pierce_remaining -= 1;
+            } else if !despawned_projectiles.contains(&proj_e) {
                 commands.entity(proj_e).despawn();
                 despawned_projectiles.insert(proj_e);
             }
@@ -325,10 +349,17 @@ fn apply_damage_system(
     damage_q:      Query<(Entity, &DamageCollision)>,
     mut ev_dead:   EventWriter<PlayerDeadEvent>,
     mut life:      ResMut<Life>,
+    buff:          Res<PlayerBuff>,
 ) {
     for (entity, damage) in &damage_q {
-        life.current_life = (life.current_life - damage.0).max(0);
         commands.entity(entity).despawn();
+
+        // Shield buff grants full invincibility.
+        if buff.shield_timer > 0.0 {
+            continue;
+        }
+
+        life.current_life = (life.current_life - damage.0).max(0);
 
         if life.current_life == 0 {
             ev_dead.send(PlayerDeadEvent);
@@ -344,6 +375,7 @@ fn player_collect_powerup_system(
     player_q:      Query<(&Transform, &HitBoxSize), With<PlayerComponent>>,
     powerup_q:     Query<(Entity, &Transform, &HitBoxSize, &PowerUpComponent), With<PowerUpComponent>>,
     mut life:      ResMut<Life>,
+    mut buff:      ResMut<PlayerBuff>,
 ) {
     let mut collected: HashSet<Entity> = HashSet::new();
 
@@ -367,7 +399,7 @@ fn player_collect_powerup_system(
             collected.insert(powerup_e);
             commands.entity(powerup_e).despawn();
 
-            powerup.apply(&mut life);
+            powerup.apply(&mut life, &mut buff);
         }
     }
 }

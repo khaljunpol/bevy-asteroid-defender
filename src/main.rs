@@ -4,17 +4,21 @@ use bevy_tweening::TweeningPlugin;
 
 use lib::{BORDER_EXTRA_SPACE, PLAYER_START_HP, PLAYER_START_SCORE, MAX_FRAMERATE};
 use resources::{
-    GameSprites, Life, Score, WindowSize, WindowDespawnBorder,
-    LevelResource, PlayerUpgrades, UpgradeSelectionState,
+    CameraShake, GameSprites, IsPaused, Life, Score, WindowSize, WindowDespawnBorder,
+    LevelResource, PlayerUpgrades, UpgradeSelectionState, ShipSelectState, PlayerBuff,
     SHIP_NORMAL_SPRITE, SHIP_ATTACK_SPRITE, SHIP_SHIELD_SPRITE,
-    POWERUP_HP_SPRITE,
+    POWERUP_HP_SPRITE, POWERUP_HP_SPRITE_GREEN, POWERUP_HP_SPRITE_RED,
+    POWERUP_BOLT_SPRITE, POWERUP_BOLT_SPRITE_GREEN, POWERUP_BOLT_SPRITE_RED,
+    POWERUP_SHIELD_SPRITE, POWERUP_SHIELD_SPRITE_GREEN, POWERUP_SHIELD_SPRITE_RED,
+    SHIELD_EFFECT_SPRITE,
     PROJECTILE_NORMAL_SPRITE, PROJECTILE_ATTACK_SPRITE, PROJECTILE_SHIELD_SPRITE,
     LIFE_NORMAL_SPRITE, LIFE_ATTACK_SPRITE, LIFE_SHIELD_SPRITE,
     METEOR_BIG_SPRITE, METEOR_MED_SPRITE, METEOR_SML_SPRITE,
     STAR1_SPRITE, STAR2_SPRITE, STAR3_SPRITE, SPEED_SPRITE, UFO_SPRITE,
+    UFO_BLUE_SPRITE, UFO_GREEN_SPRITE, UFO_YELLOW_SPRITE,
 };
 use state::states::{
-    GameStates, BaseStatePlugin, StartGameStatePlugin, CountdownStatePlugin,
+    GameStates, BaseStatePlugin, ShipSelectStatePlugin, StartGameStatePlugin, CountdownStatePlugin,
     InGameStatePlugin, LevelCompleteStatePlugin, UpgradeSelectionStatePlugin,
     GameOverStatePlugin,
 };
@@ -53,6 +57,7 @@ fn main() {
         .add_plugins(TweeningPlugin)
         // State machine
         .add_plugins(BaseStatePlugin)
+        .add_plugins(ShipSelectStatePlugin)
         .add_plugins(StartGameStatePlugin)
         .add_plugins(CountdownStatePlugin)
         .add_plugins(InGameStatePlugin)
@@ -116,7 +121,20 @@ fn startup_system(
         ship_type_normal:  asset_server.load(SHIP_NORMAL_SPRITE),
         ship_type_attack:  asset_server.load(SHIP_ATTACK_SPRITE),
         ship_type_shield:  asset_server.load(SHIP_SHIELD_SPRITE),
-        powerup_hp:        asset_server.load(POWERUP_HP_SPRITE),
+        // HP powerup tiers
+        powerup_hp:            asset_server.load(POWERUP_HP_SPRITE),
+        powerup_hp_green:      asset_server.load(POWERUP_HP_SPRITE_GREEN),
+        powerup_hp_red:        asset_server.load(POWERUP_HP_SPRITE_RED),
+        // Bolt powerup tiers
+        powerup_bolt:          asset_server.load(POWERUP_BOLT_SPRITE),
+        powerup_bolt_green:    asset_server.load(POWERUP_BOLT_SPRITE_GREEN),
+        powerup_bolt_red:      asset_server.load(POWERUP_BOLT_SPRITE_RED),
+        // Shield powerup tiers
+        powerup_shield:        asset_server.load(POWERUP_SHIELD_SPRITE),
+        powerup_shield_green:  asset_server.load(POWERUP_SHIELD_SPRITE_GREEN),
+        powerup_shield_red:    asset_server.load(POWERUP_SHIELD_SPRITE_RED),
+        // Shield visual effect
+        shield_effect:         asset_server.load(SHIELD_EFFECT_SPRITE),
         projectile_normal: asset_server.load(PROJECTILE_NORMAL_SPRITE),
         projectile_attack: asset_server.load(PROJECTILE_ATTACK_SPRITE),
         projectile_shield: asset_server.load(PROJECTILE_SHIELD_SPRITE),
@@ -136,12 +154,21 @@ fn startup_system(
         speed:             asset_server.load(SPEED_SPRITE),
         // Enemies
         ufo:               asset_server.load(UFO_SPRITE),
+        ufo_blue:          asset_server.load(UFO_BLUE_SPRITE),
+        ufo_green:         asset_server.load(UFO_GREEN_SPRITE),
+        ufo_yellow:        asset_server.load(UFO_YELLOW_SPRITE),
+        // Font
+        font:              asset_server.load("fonts/screen-diags-font.ttf"),
     });
 
     // Persistent game state resources
+    commands.insert_resource(CameraShake::default());
     commands.insert_resource(Life::new(PLAYER_START_HP));
     commands.insert_resource(Score::new(PLAYER_START_SCORE));
     commands.insert_resource(LevelResource::new());
     commands.insert_resource(PlayerUpgrades::default());
     commands.insert_resource(UpgradeSelectionState::default());
+    commands.insert_resource(ShipSelectState::default());
+    commands.insert_resource(PlayerBuff::default());
+    commands.insert_resource(IsPaused::default());
 }
