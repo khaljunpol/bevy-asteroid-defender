@@ -1,145 +1,147 @@
-use bevy::{prelude::*, core_pipeline::bloom::BloomSettings};
-use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
+use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_tweening::TweeningPlugin;
-use bevy_hanabi::prelude::*;
-use common::collision::CollisionPlugin;
-use lib::{BORDER_EXTRA_SPACE, PLAYER_START_HP, MAX_FRAMERATE, PLAYER_START_SCORE};
-use resources::{Life, LIFE_NORMAL_SPRITE, LIFE_ATTACK_SPRITE, LIFE_SHIELD_SPRITE, Score};
-use state::states::{ProgressionStatePlugin, EndGameStatePlugin, BaseStatePlugin};
-use ui::ui::UIPlugin;
 
-use crate::{
-    resources::WindowSize,
-    objects::{
-        powerup::PowerUpPlugin,
-        meteor::MeteorPlugin,
-        projectile::ProjectilePlugin
-    },
-    events::events::EventsPlugin,
-    state::states::
-        {
-            InGameStatePlugin, StartGameStatePlugin, GameStates
-        },
-    player::{
-        player::PlayerPlugin,
-        ship::ShipPlugin,
-    },
-    resources::{
-        GameSprites, SHIP_ATTACK_SPRITE,SHIP_NORMAL_SPRITE,SHIP_SHIELD_SPRITE,
-        POWERUP_CHANGE_NORMAL_SPRITE, POWERUP_CHANGE_ATTACK_SPRITE, POWERUP_CHANGE_SHIELD_SPRITE,
-        PROJECTILE_NORMAL_SPRITE, PROJECTILE_ATTACK_SPRITE, PROJECTILE_SHIELD_SPRITE,
-        WindowDespawnBorder, METEOR_BIG_SPRITE, METEOR_MED_SPRITE, METEOR_SML_SPRITE
-    },
+use lib::{BORDER_EXTRA_SPACE, PLAYER_START_HP, PLAYER_START_SCORE, MAX_FRAMERATE};
+use resources::{
+    GameSprites, Life, Score, WindowSize, WindowDespawnBorder,
+    LevelResource, PlayerUpgrades, UpgradeSelectionState,
+    SHIP_NORMAL_SPRITE, SHIP_ATTACK_SPRITE, SHIP_SHIELD_SPRITE,
+    POWERUP_HP_SPRITE,
+    PROJECTILE_NORMAL_SPRITE, PROJECTILE_ATTACK_SPRITE, PROJECTILE_SHIELD_SPRITE,
+    LIFE_NORMAL_SPRITE, LIFE_ATTACK_SPRITE, LIFE_SHIELD_SPRITE,
+    METEOR_BIG_SPRITE, METEOR_MED_SPRITE, METEOR_SML_SPRITE,
+    STAR1_SPRITE, STAR2_SPRITE, STAR3_SPRITE, SPEED_SPRITE, UFO_SPRITE,
+};
+use state::states::{
+    GameStates, BaseStatePlugin, StartGameStatePlugin, CountdownStatePlugin,
+    InGameStatePlugin, LevelCompleteStatePlugin, UpgradeSelectionStatePlugin,
+    GameOverStatePlugin,
 };
 
 mod player;
 mod objects;
-
 mod common;
 mod background;
-mod utils;
 mod effects;
-
 mod resources;
 mod state;
 mod events;
 mod ui;
+mod upgrades;
+mod utils;
 
 fn main() {
- App::new()
- .add_state::<GameStates>()
- .add_plugins(DefaultPlugins
-    .set(WindowPlugin{
-        primary_window: Some(Window { 
-            title: "Asteroid Defender Rougelike".into(),
-            resolution: (1280.0, 720.0).into(),
-            resizable: false,
-            // present_mode: PresentMode::Fifo,
-            decorations: false,
-            ..default()
-        }),
-        ..default()
-    }))
-//  .add_plugins(WorldInspectorPlugin::new()) // inspector
- .add_plugins(FramepacePlugin)
-//  .add_plugins(LogDiagnosticsPlugin::default()) // frame logging
-//  .add_plugins(FrameTimeDiagnosticsPlugin::default()) // frame logging
- .add_plugins(TweeningPlugin)
- .add_plugins(HanabiPlugin)
- .add_plugins(BaseStatePlugin)
- .add_plugins(StartGameStatePlugin)
- .add_plugins(InGameStatePlugin)
- .add_plugins(ProgressionStatePlugin)
- .add_plugins(EndGameStatePlugin)
- .add_plugins(PlayerPlugin)
- .add_plugins(ShipPlugin)
- .add_plugins(CollisionPlugin)
- .add_plugins(PowerUpPlugin)
- .add_plugins(MeteorPlugin)
- .add_plugins(ProjectilePlugin)
- .add_plugins(EventsPlugin)
- .add_plugins(UIPlugin)
- .add_systems(PreStartup, startup_system)
- .run();
+    let mut app = App::new();
+
+    app
+        .add_state::<GameStates>()
+        .add_plugins(
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Asteroid Defender Roguelike".into(),
+                    resolution: (1280.0, 720.0).into(),
+                    resizable: false,
+                    // Attach to the <canvas id="bevy"> element when running as WASM.
+                    #[cfg(target_arch = "wasm32")]
+                    canvas: Some("#bevy".into()),
+                    ..default()
+                }),
+                ..default()
+            }),
+        )
+        .add_plugins(TweeningPlugin)
+        // State machine
+        .add_plugins(BaseStatePlugin)
+        .add_plugins(StartGameStatePlugin)
+        .add_plugins(CountdownStatePlugin)
+        .add_plugins(InGameStatePlugin)
+        .add_plugins(LevelCompleteStatePlugin)
+        .add_plugins(UpgradeSelectionStatePlugin)
+        .add_plugins(GameOverStatePlugin)
+        // Game systems
+        .add_plugins(player::player::PlayerPlugin)
+        .add_plugins(player::ship::ShipPlugin)
+        .add_plugins(common::collision::CollisionPlugin)
+        .add_plugins(objects::meteor::MeteorPlugin)
+        .add_plugins(objects::projectile::ProjectilePlugin)
+        .add_plugins(objects::powerup::PowerUpPlugin)
+        .add_plugins(objects::ufo::UfoPlugin)
+        .add_plugins(events::events::EventsPlugin)
+        .add_plugins(ui::ui::UIPlugin)
+        .add_plugins(upgrades::upgrades::UpgradePlugin)
+        // Visual polish
+        .add_plugins(background::BackgroundPlugin)
+        .add_plugins(effects::particle::ParticlePlugin)
+        .add_plugins(effects::shake::CameraShakePlugin)
+        // Startup
+        .add_systems(PreStartup, startup_system);
+
+    // Frame limiter: desktop only (WASM uses browser vsync).
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
+        app.add_plugins(FramepacePlugin);
+        app.add_systems(Startup, |mut s: ResMut<FramepaceSettings>| {
+            s.limiter = Limiter::from_framerate(MAX_FRAMERATE);
+        });
+    }
+
+    app.run();
 }
 
 fn startup_system(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut frame_setting: ResMut<FramepaceSettings>,
-    window_query: Query<&mut Window, With<PrimaryWindow>>,
-)
-{
-    // limit framerate
-    frame_setting.limiter = Limiter::from_framerate(MAX_FRAMERATE);
+    mut commands:  Commands,
+    asset_server:  Res<AssetServer>,
+    window_query:  Query<&Window, With<PrimaryWindow>>,
+) {
+    let window = window_query.get_single().unwrap();
+    let (w, h) = (window.width(), window.height());
+    let (cx, cy) = (w / 2.0, h / 2.0);
 
-    // get singleton window
-    let window: &Window = window_query.get_single().unwrap();
-    let (wdw_w, wdw_h) = (window.width(), window.height());
-    let (center_x, center_y) = (window.width() / 2.0, window.height() / 2.0);
+    // Camera
+    commands.spawn(Camera2dBundle::default());
 
-    // spawn camera
-    commands.spawn((Camera2dBundle
-        {
-        ..default()
-        }, 
-    BloomSettings::default()));
+    // Window resources
+    commands.insert_resource(WindowSize { w, h });
+    commands.insert_resource(WindowDespawnBorder {
+        top:    cy + BORDER_EXTRA_SPACE,
+        bottom: -cy - BORDER_EXTRA_SPACE,
+        left:   -cx - BORDER_EXTRA_SPACE,
+        right:   cx + BORDER_EXTRA_SPACE,
+    });
 
-    // add WinSize resource
-    let wdw_size = WindowSize { w: wdw_w, h: wdw_h };
-    commands.insert_resource(wdw_size);
-
-    // add Despawn Border resource
-    let despawn_border = WindowDespawnBorder {
-        top: center_y + BORDER_EXTRA_SPACE,
-        bottom: -center_y - BORDER_EXTRA_SPACE,
-        left: -center_x - BORDER_EXTRA_SPACE,
-        right: center_x + BORDER_EXTRA_SPACE,
-    };
-    commands.insert_resource(despawn_border);
-
-    // add GameSprites resource
-    let game_sprites = GameSprites {
-        ship_type_attack: asset_server.load(SHIP_ATTACK_SPRITE),
-        ship_type_normal: asset_server.load(SHIP_NORMAL_SPRITE),
-        ship_type_shield: asset_server.load(SHIP_SHIELD_SPRITE),
-        powerup_change_normal: asset_server.load(POWERUP_CHANGE_NORMAL_SPRITE),
-        powerup_change_attack: asset_server.load(POWERUP_CHANGE_ATTACK_SPRITE),
-        powerup_change_shield: asset_server.load(POWERUP_CHANGE_SHIELD_SPRITE),
+    // Preload all sprite assets
+    commands.insert_resource(GameSprites {
+        ship_type_normal:  asset_server.load(SHIP_NORMAL_SPRITE),
+        ship_type_attack:  asset_server.load(SHIP_ATTACK_SPRITE),
+        ship_type_shield:  asset_server.load(SHIP_SHIELD_SPRITE),
+        powerup_hp:        asset_server.load(POWERUP_HP_SPRITE),
         projectile_normal: asset_server.load(PROJECTILE_NORMAL_SPRITE),
         projectile_attack: asset_server.load(PROJECTILE_ATTACK_SPRITE),
         projectile_shield: asset_server.load(PROJECTILE_SHIELD_SPRITE),
-        life_normal: asset_server.load(LIFE_NORMAL_SPRITE),
-        life_attack: asset_server.load(LIFE_ATTACK_SPRITE),
-        life_shield: asset_server.load(LIFE_SHIELD_SPRITE),
-        meteor_big: asset_server.load(METEOR_BIG_SPRITE),
-        meteor_med: asset_server.load(METEOR_MED_SPRITE),
-        meteor_sml: asset_server.load(METEOR_SML_SPRITE),
-    };
-    commands.insert_resource(game_sprites);
+        life_normal:       asset_server.load(LIFE_NORMAL_SPRITE),
+        life_attack:       asset_server.load(LIFE_ATTACK_SPRITE),
+        life_shield:       asset_server.load(LIFE_SHIELD_SPRITE),
+        meteor_big:        asset_server.load(METEOR_BIG_SPRITE),
+        meteor_med:        asset_server.load(METEOR_MED_SPRITE),
+        meteor_sml:        asset_server.load(METEOR_SML_SPRITE),
+        // Effects
+        star1:             asset_server.load(STAR1_SPRITE),
+        star2:             asset_server.load(STAR2_SPRITE),
+        star3:             asset_server.load(STAR3_SPRITE),
+        fire_frames:       (0..20)
+                               .map(|i| asset_server.load(format!("sprites/effects/fire{i:02}.png")))
+                               .collect(),
+        speed:             asset_server.load(SPEED_SPRITE),
+        // Enemies
+        ufo:               asset_server.load(UFO_SPRITE),
+    });
 
-    // add in game values
+    // Persistent game state resources
     commands.insert_resource(Life::new(PLAYER_START_HP));
     commands.insert_resource(Score::new(PLAYER_START_SCORE));
+    commands.insert_resource(LevelResource::new());
+    commands.insert_resource(PlayerUpgrades::default());
+    commands.insert_resource(UpgradeSelectionState::default());
 }

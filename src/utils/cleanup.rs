@@ -1,26 +1,21 @@
 use bevy::prelude::*;
 
+/// Marks an entity to be despawned when the current run ends (StartGame reset).
+/// Use this for: the player, anything that must not survive a full restart.
 #[derive(Component)]
-pub struct CleanUpEndGame {
-    pub despawn_entity: bool
-}
+pub struct CleanUpOnGameOver;
 
-impl CleanUpEndGame {
-    pub fn new(despawn_entity: bool) -> Self {
-        CleanUpEndGame {
-            despawn_entity,
-        }
-    }
-}
+/// Marks an entity to be despawned between levels (on InGame exit or LevelComplete).
+/// Use this for: projectiles, powerups.
+#[derive(Component)]
+pub struct CleanUpOnLevelEnd;
 
+/// Generic cleanup system – despawns all entities with marker component `T`.
 pub fn cleanup_system<T: Component>(
     mut commands: Commands,
-    endgame_query: Query<(Entity, &CleanUpEndGame), With<CleanUpEndGame>>
+    query: Query<Entity, With<T>>,
 ) {
-    
-    for (entity, cleanup) in endgame_query.iter() {
-        if cleanup.despawn_entity{
-            commands.entity(entity).despawn_recursive();
-        }
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
     }
 }
